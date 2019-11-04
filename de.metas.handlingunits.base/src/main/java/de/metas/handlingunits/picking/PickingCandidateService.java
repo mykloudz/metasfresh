@@ -283,5 +283,4 @@ public class PickingCandidateService
 				.build()
 				.perform();
 	}
-
 }
