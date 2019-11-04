@@ -7,7 +7,6 @@ import static de.metas.util.Check.assumeGreaterThanZero;
 import static java.math.BigDecimal.ONE;
 import static java.math.BigDecimal.ZERO;
 import static org.adempiere.model.InterfaceWrapperHelper.getValueOrNull;
-import static org.adempiere.model.InterfaceWrapperHelper.loadOutOfTrx;
 import static org.adempiere.model.InterfaceWrapperHelper.newInstance;
 import static org.adempiere.model.InterfaceWrapperHelper.save;
 import static org.adempiere.model.InterfaceWrapperHelper.saveRecord;
@@ -65,6 +64,7 @@ import org.adempiere.util.concurrent.AutoClosableThreadLocalBoolean;
 import org.adempiere.util.lang.IAutoCloseable;
 import org.adempiere.util.lang.IPair;
 import org.adempiere.util.lang.ImmutablePair;
+import org.adempiere.util.lang.impl.TableRecordReference;
 import org.compiere.SpringContextHolder;
 import org.compiere.model.I_AD_Note;
 import org.compiere.model.I_C_BPartner;
@@ -118,7 +118,6 @@ import de.metas.invoicecandidate.api.IInvoiceGenerator;
 import de.metas.invoicecandidate.api.InvoiceCandidate_Constants;
 import de.metas.invoicecandidate.async.spi.impl.InvoiceCandWorkpackageProcessor;
 import de.metas.invoicecandidate.exceptions.InconsistentUpdateExeption;
-import de.metas.invoicecandidate.internalbusinesslogic.InvoiceRule;
 import de.metas.invoicecandidate.model.I_C_InvoiceCandidate_InOutLine;
 import de.metas.invoicecandidate.model.I_C_Invoice_Candidate;
 import de.metas.invoicecandidate.model.I_C_Invoice_Detail;
@@ -130,6 +129,7 @@ import de.metas.money.CurrencyId;
 import de.metas.money.Money;
 import de.metas.money.MoneyService;
 import de.metas.order.IOrderDAO;
+import de.metas.order.InvoiceRule;
 import de.metas.order.OrderId;
 import de.metas.organization.OrgId;
 import de.metas.pricing.PricingSystemId;
@@ -152,6 +152,7 @@ import de.metas.quantity.StockQtyAndUOMQtys;
 import de.metas.tax.api.ITaxBL;
 import de.metas.tax.api.ITaxDAO;
 import de.metas.uom.IUOMConversionBL;
+import de.metas.uom.IUOMDAO;
 import de.metas.uom.UOMConversionContext;
 import de.metas.uom.UomId;
 import de.metas.util.Check;
@@ -159,6 +160,7 @@ import de.metas.util.Loggables;
 import de.metas.util.OptionalBoolean;
 import de.metas.util.Services;
 import de.metas.util.lang.Percent;
+import de.metas.util.rest.ExternalHeaderAndLineId;
 import lombok.NonNull;
 
 public class InvoiceCandBL implements IInvoiceCandBL
@@ -183,6 +185,7 @@ public class InvoiceCandBL implements IInvoiceCandBL
 	private static final LocalDate DATE_TO_INVOICE_MAX_DATE = LocalDate.of(9999, Month.DECEMBER, 31); // NOTE: not using LocalDate.MAX because we want to convert it to Timestamp
 
 	private final Logger logger = InvoiceCandidate_Constants.getLogger(InvoiceCandBL.class);
+	private final IUOMDAO uomsRepo = Services.get(IUOMDAO.class);
 
 	@Override
 	public IInvoiceCandInvalidUpdater updateInvalid()
@@ -225,7 +228,7 @@ public class InvoiceCandBL implements IInvoiceCandBL
 				return computedateToInvoiceBasedOnDeliveryDate(ic);
 
 			case CustomerScheduleAfterDelivery:
-				if (ic.getC_InvoiceSchedule_ID() <= 0)        // that's a paddlin'
+				if (ic.getC_InvoiceSchedule_ID() <= 0) // that's a paddlin'
 				{
 					return DATE_TO_INVOICE_MAX_DATE;
 				}
@@ -428,7 +431,7 @@ public class InvoiceCandBL implements IInvoiceCandBL
 					ila.getQtyInvoiced(),
 					productId,
 					ila.getQtyInvoicedInUOM(),
-					UomId.ofRepoId(ila.getC_UOM_ID()));
+					UomId.ofRepoIdOrNull(ila.getC_UOM_ID()));
 			qtyInvoiced = qtyInvoiced.add(qtysInvoiced);
 
 			//
@@ -440,7 +443,7 @@ public class InvoiceCandBL implements IInvoiceCandBL
 					.uomId(icUomId)
 					.build();
 
-			final Quantity qtyInvoicedInUOM = Quantity.of(ila.getQtyInvoicedInUOM(), loadOutOfTrx(ila.getC_UOM_ID(), I_C_UOM.class));
+			final Quantity qtyInvoicedInUOM = extractQtyInvoiced(ila);
 
 			final Money amountInvoiced = SpringContextHolder.instance.getBean(MoneyService.class)
 					.multiply(qtyInvoicedInUOM, priceActual);
@@ -460,6 +463,33 @@ public class InvoiceCandBL implements IInvoiceCandBL
 		}
 		final IPair<StockQtyAndUOMQty, Money> qtyAndNetAmtInvoiced = ImmutablePair.of(qtyInvoiced, netAmtInvoiced);
 		return qtyAndNetAmtInvoiced;
+	}
+
+	private static void setQtyInvoiced(
+			@NonNull final I_C_Invoice_Line_Alloc ila,
+			@NonNull final StockQtyAndUOMQty qtysInvoiced)
+	{
+		ila.setQtyInvoiced(qtysInvoiced.getStockQty().toBigDecimal());
+		if (qtysInvoiced.isUOMQtySet())
+		{
+			final Quantity qty = qtysInvoiced.getUOMQtyNotNull();
+			ila.setQtyInvoicedInUOM(qty.toBigDecimal());
+			ila.setC_UOM_ID(qty.getUomId().getRepoId());
+		}
+	}
+
+	private Quantity extractQtyInvoiced(@NonNull final I_C_Invoice_Line_Alloc ila)
+	{
+		final UomId uomId = UomId.ofRepoIdOrNull(ila.getC_UOM_ID());
+		if (uomId != null)
+		{
+			final I_C_UOM uom = uomsRepo.getById(uomId);
+			return Quantity.of(ila.getQtyInvoicedInUOM(), uom);
+		}
+		else
+		{
+			return null;
+		}
 	}
 
 	/* package */void set_Discount(final Properties ctx, final I_C_Invoice_Candidate ic)
@@ -684,7 +714,7 @@ public class InvoiceCandBL implements IInvoiceCandBL
 		{
 			ic.setSchedulerResult(amendment);
 		}
-		else if (!currentVal.contains(amendment))   // this IC might already contain the given amendment
+		else if (!currentVal.contains(amendment)) // this IC might already contain the given amendment
 		{
 			ic.setSchedulerResult(currentVal + "\n" + amendment);
 		}
@@ -850,7 +880,7 @@ public class InvoiceCandBL implements IInvoiceCandBL
 
 			final I_M_PriceList pricelist = Services.get(IPriceListBL.class)
 					.getCurrentPricelistOrNull(
-							PricingSystemId.ofRepoIdOrNull(ic.getM_PricingSystem_ID()),
+					PricingSystemId.ofRepoIdOrNull(ic.getM_PricingSystem_ID()),
 							CountryId.ofRepoId(partnerLocation.getC_Location().getC_Country_ID()),
 							date,
 							soTrx);
@@ -945,7 +975,8 @@ public class InvoiceCandBL implements IInvoiceCandBL
 		splitCand.setC_Tax_ID(ic.getC_Tax_ID());
 		splitCand.setC_Tax_Override_ID(ic.getC_Tax_Override_ID());
 
-		splitCand.setExternalId(ic.getExternalId());
+		splitCand.setExternalHeaderId(ic.getExternalHeaderId());
+		splitCand.setExternalLineId(ic.getExternalLineId());
 
 		return splitCand;
 	}
@@ -1015,7 +1046,7 @@ public class InvoiceCandBL implements IInvoiceCandBL
 			}
 
 			// 05475: If exists, update the qtyInvoiced.
-			existingIla.setQtyInvoiced(qtysInvoiced.getStockQty().toBigDecimal());
+			setQtyInvoiced(existingIla, qtysInvoiced);
 			InterfaceWrapperHelper.save(existingIla);
 			return existingIla;
 		}
@@ -1027,9 +1058,7 @@ public class InvoiceCandBL implements IInvoiceCandBL
 		newIla.setAD_Org_ID(invoiceCand.getAD_Org_ID());
 		newIla.setC_Invoice_Candidate(invoiceCand);
 		newIla.setC_InvoiceLine(invoiceLine);
-		newIla.setQtyInvoiced(qtysInvoiced.getStockQty().toBigDecimal());
-		newIla.setQtyInvoicedInUOM(qtysInvoiced.getUOMQtyNotNull().toBigDecimal());
-		newIla.setC_UOM_ID(qtysInvoiced.getUOMQtyNotNull().getUomId().getRepoId());
+		setQtyInvoiced(newIla, qtysInvoiced);
 		newIla.setC_Invoice_Candidate_Agg_ID(invoiceCand.getC_Invoice_Candidate_Agg_ID());
 
 		// #870
@@ -1100,7 +1129,7 @@ public class InvoiceCandBL implements IInvoiceCandBL
 			final BigDecimal priceActualOverride = discount
 					.subtractFromBase(
 							priceEntered.toMoney().toBigDecimal(),
-							precision.toInt());
+					precision.toInt());
 			ic.setPriceActual_Override(priceActualOverride);
 		}
 	}
@@ -1323,10 +1352,11 @@ public class InvoiceCandBL implements IInvoiceCandBL
 				//
 				// If 'il' has an order line, make sure that this order line also has invoice candidates and that those candidates also refer 'il'
 
-				final I_C_OrderLine ol = InterfaceWrapperHelper.create(il.getC_OrderLine(), I_C_OrderLine.class);
-				final List<I_C_Invoice_Candidate> existingICs = invoiceCandDAO.fetchInvoiceCandidates(ctx, org.compiere.model.I_C_OrderLine.Table_Name, il.getC_OrderLine_ID(), trxName);
+				final TableRecordReference olReference = TableRecordReference.of(I_C_OrderLine.Table_Name, il.getC_OrderLine_ID()); // no need to load the OL just yet
+				final List<I_C_Invoice_Candidate> existingICs = invoiceCandDAO.retrieveReferencing(olReference);
 				if (existingICs.isEmpty())
 				{
+					final I_C_OrderLine ol = InterfaceWrapperHelper.create(il.getC_OrderLine(), I_C_OrderLine.class);
 					// NOTE: in case 'invoice' was not created from invoice candidates, it's a big chance here to get zero existing ICs
 					// so we need to create them now
 
@@ -1890,7 +1920,6 @@ public class InvoiceCandBL implements IInvoiceCandBL
 			// nothing to do;
 			return;
 		}
-		// boolean hasInvoiceableInvoiceCands = invoiceCandDAO.hasInvoiceableInvoiceCands(orderId);
 
 		final InvoiceCandidateId firstInvoiceableInvoiceCandId = invoiceCandDAO.getFirstInvoiceableInvoiceCandId(orderId);
 
@@ -1908,12 +1937,16 @@ public class InvoiceCandBL implements IInvoiceCandBL
 
 			ic.setDeliveryDate(firstInvoiceableCandRecord.getDeliveryDate());
 			ic.setQtyToInvoice(ONE);
+			ic.setQtyDelivered(ONE);
+			ic.setQtyToInvoiceInUOM(ONE);
 			set_DateToInvoice_DefaultImpl(ic);
 		}
 
 		else
 		{
 			ic.setQtyToInvoice(ZERO);
+			ic.setQtyDelivered(ZERO);
+			ic.setQtyToInvoiceInUOM(ZERO);
 			set_DateToInvoice_DefaultImpl(ic);
 		}
 	}
@@ -1960,5 +1993,12 @@ public class InvoiceCandBL implements IInvoiceCandBL
 			iciol.setQtyDeliveredInUOM_Nominal(inOutLine.getQtyEntered());
 		}
 		saveRecord(iciol);
+	}
+
+	@Override
+	public int createSelectionForInvoiceCandidates(List<ExternalHeaderAndLineId> headerAndLineIds,
+			PInstanceId pInstanceId)
+	{
+		return Services.get(IInvoiceCandDAO.class).createSelectionByHeaderAndLineIds(headerAndLineIds, pInstanceId);
 	}
 }

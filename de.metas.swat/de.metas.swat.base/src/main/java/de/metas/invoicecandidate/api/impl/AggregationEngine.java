@@ -1,5 +1,6 @@
 package de.metas.invoicecandidate.api.impl;
 
+import static de.metas.util.lang.CoalesceUtil.coalesce;
 import static org.adempiere.model.InterfaceWrapperHelper.loadOutOfTrx;
 
 import java.time.LocalDate;
@@ -45,7 +46,6 @@ import org.compiere.model.I_C_BPartner;
 import org.compiere.model.I_C_BPartner_Location;
 import org.compiere.model.I_C_DocType;
 import org.compiere.model.I_M_InOutLine;
-import org.compiere.model.I_M_PriceList;
 import org.compiere.model.I_M_PricingSystem;
 import org.compiere.model.X_C_DocType;
 import org.compiere.util.Env;
@@ -60,6 +60,8 @@ import de.metas.aggregation.api.IAggregationFactory;
 import de.metas.aggregation.api.IAggregationKeyBuilder;
 import de.metas.aggregation.model.X_C_Aggregation;
 import de.metas.bpartner.BPartnerLocationId;
+import de.metas.bpartner.service.IBPartnerBL;
+import de.metas.bpartner.service.IBPartnerBL.RetrieveContactRequest;
 import de.metas.bpartner.service.IBPartnerDAO;
 import de.metas.document.IDocTypeDAO;
 import de.metas.inout.InOutId;
@@ -77,9 +79,11 @@ import de.metas.invoicecandidate.model.I_C_Invoice_Candidate;
 import de.metas.invoicecandidate.spi.IAggregator;
 import de.metas.lang.SOTrx;
 import de.metas.money.Money;
+import de.metas.pricing.PriceListId;
 import de.metas.pricing.PriceListVersionId;
 import de.metas.pricing.PricingSystemId;
 import de.metas.pricing.service.IPriceListDAO;
+import de.metas.user.User;
 import de.metas.util.Check;
 import de.metas.util.GuavaCollectors;
 import de.metas.util.ILoggable;
@@ -91,11 +95,13 @@ import lombok.NonNull;
 
 /**
  * Aggregates multiple {@link I_C_Invoice_Candidate} records and returns a result that that is suitable to create invoices.
- * 
+ *
  * @see IAggregator
  */
+
 public final class AggregationEngine
 {
+
 	public static AggregationEngine newInstance()
 	{
 		return builder().build();
@@ -111,16 +117,19 @@ public final class AggregationEngine
 	private final transient IAggregationFactory aggregationFactory = Services.get(IAggregationFactory.class);
 	private final transient IPriceListDAO priceListDAO = Services.get(IPriceListDAO.class);
 	private final transient IBPartnerDAO bpartnerDAO = Services.get(IBPartnerDAO.class);
+
 	private final transient IDocTypeDAO docTypeDAO = Services.get(IDocTypeDAO.class);
 
 	private static final String ERR_INVOICE_CAND_PRICE_LIST_MISSING_2P = "InvoiceCand_PriceList_Missing";
 
 	//
 	// Parameters
+	private final IBPartnerBL bpartnerBL;
 	private final boolean alwaysUseDefaultHeaderAggregationKeyBuilder;
 	private final LocalDate today;
 	private final LocalDate defaultDateInvoiced;
 	private final LocalDate defaultDateAcct;
+	private final boolean updateLocationAndContactForInvoice;
 
 	private final AdTableId inoutLineTableId;
 	/**
@@ -130,16 +139,21 @@ public final class AggregationEngine
 
 	@Builder
 	private AggregationEngine(
+			final IBPartnerBL bpartnerBL,
 			final boolean alwaysUseDefaultHeaderAggregationKeyBuilder,
 			@Nullable final LocalDate defaultDateInvoiced,
-			@Nullable final LocalDate defaultDateAcct)
+			@Nullable final LocalDate defaultDateAcct,
+			final boolean updateLocationAndContactForInvoice)
 	{
+		this.bpartnerBL = coalesce(bpartnerBL, Services.get(IBPartnerBL.class));
+
 		this.alwaysUseDefaultHeaderAggregationKeyBuilder = alwaysUseDefaultHeaderAggregationKeyBuilder;
 
 		this.today = TimeUtil.asLocalDate(invoiceCandBL.getToday());
 
 		this.defaultDateInvoiced = defaultDateInvoiced;
 		this.defaultDateAcct = defaultDateAcct;
+		this.updateLocationAndContactForInvoice = updateLocationAndContactForInvoice;
 
 		final IADTableDAO adTableDAO = Services.get(IADTableDAO.class);
 		inoutLineTableId = AdTableId.ofRepoId(adTableDAO.retrieveTableId(I_M_InOutLine.Table_Name));
@@ -371,8 +385,8 @@ public final class AggregationEngine
 	{
 		invoiceHeader.setAD_Org_ID(ic.getAD_Org_ID());
 		invoiceHeader.setBill_BPartner_ID(ic.getBill_BPartner_ID());
-		invoiceHeader.setBill_Location_ID(getBill_Location_ID(ic));
-		invoiceHeader.setBill_User_ID(getBill_User_ID(ic));
+		invoiceHeader.setBill_Location_ID(getBill_Location_ID(ic, updateLocationAndContactForInvoice));
+		invoiceHeader.setBill_User_ID(getBill_User_ID(ic, updateLocationAndContactForInvoice));
 		invoiceHeader.setC_Order_ID(ic.getC_Order_ID());
 		invoiceHeader.setPOReference(ic.getPOReference()); // task 07978
 
@@ -395,16 +409,19 @@ public final class AggregationEngine
 		}
 		else
 		{
-			final I_C_BPartner_Location bpLocation = bpartnerDAO.getBPartnerLocationById(BPartnerLocationId.ofRepoId(ic.getBill_BPartner_ID(), ic.getBill_Location_ID()));
-			final I_M_PriceList pl = priceListDAO.retrievePriceListByPricingSyst(PricingSystemId.ofRepoIdOrNull(ic.getM_PricingSystem_ID()), bpLocation, SOTrx.ofBoolean(ic.isSOTrx()));
-			if (pl == null)
+			final BPartnerLocationId bpLocationId = BPartnerLocationId.ofRepoId(ic.getBill_BPartner_ID(), ic.getBill_Location_ID());
+			final PriceListId plId = priceListDAO.retrievePriceListIdByPricingSyst(
+					PricingSystemId.ofRepoIdOrNull(ic.getM_PricingSystem_ID()),
+					bpLocationId,
+					SOTrx.ofBoolean(ic.isSOTrx()));
+			if (plId == null)
 			{
 				throw new AdempiereException(ERR_INVOICE_CAND_PRICE_LIST_MISSING_2P,
 						new Object[] {
 								ic.getM_PricingSystem_ID() > 0 ? loadOutOfTrx(ic.getM_PricingSystem_ID(), I_M_PricingSystem.class).getName() : "NO PRICING-SYTEM",
 								invoiceHeader.getBill_Location_ID() > 0 ? loadOutOfTrx(invoiceHeader.getBill_Location_ID(), I_C_BPartner_Location.class).getName() : "NO BILL-TO-LOCATION" });
 			}
-			M_PriceList_ID = pl.getM_PriceList_ID();
+			M_PriceList_ID = plId.getRepoId();
 		}
 		invoiceHeader.setM_PriceList_ID(M_PriceList_ID);
 		// #367 end
@@ -448,14 +465,49 @@ public final class AggregationEngine
 				() -> computeDateInvoiced(ic));
 	}
 
-	private int getBill_Location_ID(@NonNull final I_C_Invoice_Candidate ic)
+	private int getBill_Location_ID(@NonNull final I_C_Invoice_Candidate ic, final boolean isUpdateLocationAndContactForInvoice)
 	{
-		return ic.getBill_Location_Override_ID() > 0 ? ic.getBill_Location_Override_ID() : ic.getBill_Location_ID();
+		final int bill_Location_Override_ID = ic.getBill_Location_Override_ID();
+		if (bill_Location_Override_ID > 0)
+		{
+			return bill_Location_Override_ID;
+		}
+
+		if (!isUpdateLocationAndContactForInvoice)
+		{
+			return ic.getBill_Location_ID();
+		}
+		final de.metas.bpartner.BPartnerId bpartnerId = de.metas.bpartner.BPartnerId.ofRepoId(ic.getBill_BPartner_ID());
+
+		final BPartnerLocationId currentBillLocation = bpartnerDAO.retrieveCurrentBillLocationOrNull(bpartnerId);
+
+		return currentBillLocation == null ? -1 : currentBillLocation.getRepoId();
+
 	}
 
-	private int getBill_User_ID(@NonNull final I_C_Invoice_Candidate ic)
+	private int getBill_User_ID(@NonNull final I_C_Invoice_Candidate ic, final boolean isUpdateLocationAndContactForInvoice)
 	{
-		return ic.getBill_User_ID_Override_ID() > 0 ? ic.getBill_User_ID_Override_ID() : ic.getBill_User_ID();
+		final int bill_User_ID_Override_ID = ic.getBill_User_ID_Override_ID();
+		if (bill_User_ID_Override_ID > 0)
+		{
+			return bill_User_ID_Override_ID;
+		}
+
+		if (!isUpdateLocationAndContactForInvoice)
+		{
+			return ic.getBill_User_ID();
+		}
+
+		final BPartnerLocationId partnerLocationId = BPartnerLocationId.ofRepoId(ic.getBill_BPartner_ID(), getBill_Location_ID(ic, isUpdateLocationAndContactForInvoice));
+
+		final RetrieveContactRequest request = RetrieveContactRequest
+				.builder()
+				.bpartnerId(partnerLocationId.getBpartnerId())
+				.bPartnerLocationId(partnerLocationId)
+				.build();
+
+		final User billContact = bpartnerBL.retrieveContactOrNull(request);
+		return billContact == null ? -1 : billContact.getId().getRepoId();
 	}
 
 	public List<IInvoiceHeader> aggregate()

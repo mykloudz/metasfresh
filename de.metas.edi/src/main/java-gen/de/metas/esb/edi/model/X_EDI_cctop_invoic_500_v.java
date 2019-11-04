@@ -1,26 +1,9 @@
-/******************************************************************************
- * Product: Adempiere ERP & CRM Smart Business Solution                       *
- * Copyright (C) 1999-2007 ComPiere, Inc. All Rights Reserved.                *
- * This program is free software, you can redistribute it and/or modify it    *
- * under the terms version 2 of the GNU General Public License as published   *
- * by the Free Software Foundation. This program is distributed in the hope   *
- * that it will be useful, but WITHOUT ANY WARRANTY, without even the implied *
- * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.           *
- * See the GNU General Public License for more details.                       *
- * You should have received a copy of the GNU General Public License along    *
- * with this program, if not, write to the Free Software Foundation, Inc.,    *
- * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.                     *
- * For the text or an alternative of this public license, you may reach us    *
- * ComPiere, Inc., 2620 Augustine Dr. #245, Santa Clara, CA 95054, USA        *
- * or via info@compiere.org or http://www.compiere.org/license.html           *
- *****************************************************************************/
 /** Generated Model - DO NOT CHANGE */
 package de.metas.esb.edi.model;
 
 import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.util.Properties;
-import org.compiere.util.Env;
 
 /** Generated Model for EDI_cctop_invoic_500_v
  *  @author Adempiere (generated) 
@@ -32,7 +15,7 @@ public class X_EDI_cctop_invoic_500_v extends org.compiere.model.PO implements I
 	/**
 	 *
 	 */
-	private static final long serialVersionUID = -1631151299L;
+	private static final long serialVersionUID = -1633246333L;
 
     /** Standard Constructor */
     public X_EDI_cctop_invoic_500_v (Properties ctx, int EDI_cctop_invoic_500_v_ID, String trxName)
@@ -59,7 +42,7 @@ public class X_EDI_cctop_invoic_500_v extends org.compiere.model.PO implements I
     }
 
 	@Override
-	public org.compiere.model.I_C_Invoice getC_Invoice() throws RuntimeException
+	public org.compiere.model.I_C_Invoice getC_Invoice()
 	{
 		return get_ValueAsPO(COLUMNNAME_C_Invoice_ID, org.compiere.model.I_C_Invoice.class);
 	}
@@ -127,6 +110,38 @@ public class X_EDI_cctop_invoic_500_v extends org.compiere.model.PO implements I
 		return (java.lang.String)get_Value(COLUMNNAME_eancom_uom);
 	}
 
+	/** Set CU-EAN.
+		@param EAN_CU CU-EAN	  */
+	@Override
+	public void setEAN_CU (java.lang.String EAN_CU)
+	{
+		set_ValueNoCheck (COLUMNNAME_EAN_CU, EAN_CU);
+	}
+
+	/** Get CU-EAN.
+		@return CU-EAN	  */
+	@Override
+	public java.lang.String getEAN_CU () 
+	{
+		return (java.lang.String)get_Value(COLUMNNAME_EAN_CU);
+	}
+
+	/** Set TU-EAN.
+		@param EAN_TU TU-EAN	  */
+	@Override
+	public void setEAN_TU (java.lang.String EAN_TU)
+	{
+		set_ValueNoCheck (COLUMNNAME_EAN_TU, EAN_TU);
+	}
+
+	/** Get TU-EAN.
+		@return TU-EAN	  */
+	@Override
+	public java.lang.String getEAN_TU () 
+	{
+		return (java.lang.String)get_Value(COLUMNNAME_EAN_TU);
+	}
+
 	/** Set EDI_cctop_invoic_500_v.
 		@param EDI_cctop_invoic_500_v_ID EDI_cctop_invoic_500_v	  */
 	@Override
@@ -150,7 +165,7 @@ public class X_EDI_cctop_invoic_500_v extends org.compiere.model.PO implements I
 	}
 
 	@Override
-	public de.metas.esb.edi.model.I_EDI_cctop_invoic_v getEDI_cctop_invoic_v() throws RuntimeException
+	public de.metas.esb.edi.model.I_EDI_cctop_invoic_v getEDI_cctop_invoic_v()
 	{
 		return get_ValueAsPO(COLUMNNAME_EDI_cctop_invoic_v_ID, de.metas.esb.edi.model.I_EDI_cctop_invoic_v.class);
 	}
@@ -181,6 +196,22 @@ public class X_EDI_cctop_invoic_500_v extends org.compiere.model.PO implements I
 		if (ii == null)
 			 return 0;
 		return ii.intValue();
+	}
+
+	/** Set GTIN.
+		@param GTIN GTIN	  */
+	@Override
+	public void setGTIN (java.lang.String GTIN)
+	{
+		set_ValueNoCheck (COLUMNNAME_GTIN, GTIN);
+	}
+
+	/** Get GTIN.
+		@return GTIN	  */
+	@Override
+	public java.lang.String getGTIN () 
+	{
+		return (java.lang.String)get_Value(COLUMNNAME_GTIN);
 	}
 
 	/** Set ISO Währungscode.
@@ -258,14 +289,12 @@ public class X_EDI_cctop_invoic_500_v extends org.compiere.model.PO implements I
 	{
 		BigDecimal bd = (BigDecimal)get_Value(COLUMNNAME_LineNetAmt);
 		if (bd == null)
-			 return Env.ZERO;
+			 return BigDecimal.ZERO;
 		return bd;
 	}
 
 	/** Set Name.
-		@param Name 
-		Alphanumeric identifier of the entity
-	  */
+		@param Name Name	  */
 	@Override
 	public void setName (java.lang.String Name)
 	{
@@ -273,15 +302,14 @@ public class X_EDI_cctop_invoic_500_v extends org.compiere.model.PO implements I
 	}
 
 	/** Get Name.
-		@return Alphanumeric identifier of the entity
-	  */
+		@return Name	  */
 	@Override
 	public java.lang.String getName () 
 	{
 		return (java.lang.String)get_Value(COLUMNNAME_Name);
 	}
 
-	/** Set Name 2.
+	/** Set Name Zusatz.
 		@param Name2 
 		Zusätzliche Bezeichnung
 	  */
@@ -291,7 +319,7 @@ public class X_EDI_cctop_invoic_500_v extends org.compiere.model.PO implements I
 		set_Value (COLUMNNAME_Name2, Name2);
 	}
 
-	/** Get Name 2.
+	/** Get Name Zusatz.
 		@return Zusätzliche Bezeichnung
 	  */
 	@Override
@@ -319,6 +347,22 @@ public class X_EDI_cctop_invoic_500_v extends org.compiere.model.PO implements I
 		return ii.intValue();
 	}
 
+	/** Set Auftragsreferenz.
+		@param OrderPOReference Auftragsreferenz	  */
+	@Override
+	public void setOrderPOReference (java.lang.String OrderPOReference)
+	{
+		set_ValueNoCheck (COLUMNNAME_OrderPOReference, OrderPOReference);
+	}
+
+	/** Get Auftragsreferenz.
+		@return Auftragsreferenz	  */
+	@Override
+	public java.lang.String getOrderPOReference () 
+	{
+		return (java.lang.String)get_Value(COLUMNNAME_OrderPOReference);
+	}
+
 	/** Set Einzelpreis.
 		@param PriceActual 
 		Effektiver Preis
@@ -337,7 +381,7 @@ public class X_EDI_cctop_invoic_500_v extends org.compiere.model.PO implements I
 	{
 		BigDecimal bd = (BigDecimal)get_Value(COLUMNNAME_PriceActual);
 		if (bd == null)
-			 return Env.ZERO;
+			 return BigDecimal.ZERO;
 		return bd;
 	}
 
@@ -359,7 +403,7 @@ public class X_EDI_cctop_invoic_500_v extends org.compiere.model.PO implements I
 	{
 		BigDecimal bd = (BigDecimal)get_Value(COLUMNNAME_PriceList);
 		if (bd == null)
-			 return Env.ZERO;
+			 return BigDecimal.ZERO;
 		return bd;
 	}
 
@@ -382,9 +426,9 @@ public class X_EDI_cctop_invoic_500_v extends org.compiere.model.PO implements I
 		return (java.lang.String)get_Value(COLUMNNAME_ProductDescription);
 	}
 
-	/** Set Quantity Invoiced.
+	/** Set Berechn. Menge.
 		@param QtyInvoiced 
-		Invoiced Quantity
+		Menge in Produkt-Maßeinheit, die bereits in Rechnung gestellt wurde.
 	  */
 	@Override
 	public void setQtyInvoiced (java.math.BigDecimal QtyInvoiced)
@@ -392,15 +436,15 @@ public class X_EDI_cctop_invoic_500_v extends org.compiere.model.PO implements I
 		set_Value (COLUMNNAME_QtyInvoiced, QtyInvoiced);
 	}
 
-	/** Get Quantity Invoiced.
-		@return Invoiced Quantity
+	/** Get Berechn. Menge.
+		@return Menge in Produkt-Maßeinheit, die bereits in Rechnung gestellt wurde.
 	  */
 	@Override
 	public java.math.BigDecimal getQtyInvoiced () 
 	{
 		BigDecimal bd = (BigDecimal)get_Value(COLUMNNAME_QtyInvoiced);
 		if (bd == null)
-			 return Env.ZERO;
+			 return BigDecimal.ZERO;
 		return bd;
 	}
 
@@ -422,7 +466,7 @@ public class X_EDI_cctop_invoic_500_v extends org.compiere.model.PO implements I
 	{
 		BigDecimal bd = (BigDecimal)get_Value(COLUMNNAME_Rate);
 		if (bd == null)
-			 return Env.ZERO;
+			 return BigDecimal.ZERO;
 		return bd;
 	}
 
@@ -444,7 +488,7 @@ public class X_EDI_cctop_invoic_500_v extends org.compiere.model.PO implements I
 	{
 		BigDecimal bd = (BigDecimal)get_Value(COLUMNNAME_TaxAmtInfo);
 		if (bd == null)
-			 return Env.ZERO;
+			 return BigDecimal.ZERO;
 		return bd;
 	}
 
@@ -471,23 +515,36 @@ public class X_EDI_cctop_invoic_500_v extends org.compiere.model.PO implements I
 		return false;
 	}
 
-	/** Set UPC/EAN.
-		@param UPC 
-		Produktidentifikation (Barcode) durch Universal Product Code oder European Article Number)
-	  */
+	/** Set CU-UPC.
+		@param UPC_CU CU-UPC	  */
 	@Override
-	public void setUPC (java.lang.String UPC)
+	public void setUPC_CU (java.lang.String UPC_CU)
 	{
-		set_Value (COLUMNNAME_UPC, UPC);
+		set_ValueNoCheck (COLUMNNAME_UPC_CU, UPC_CU);
 	}
 
-	/** Get UPC/EAN.
-		@return Produktidentifikation (Barcode) durch Universal Product Code oder European Article Number)
-	  */
+	/** Get CU-UPC.
+		@return CU-UPC	  */
 	@Override
-	public java.lang.String getUPC () 
+	public java.lang.String getUPC_CU () 
 	{
-		return (java.lang.String)get_Value(COLUMNNAME_UPC);
+		return (java.lang.String)get_Value(COLUMNNAME_UPC_CU);
+	}
+
+	/** Set TU-UPC.
+		@param UPC_TU TU-UPC	  */
+	@Override
+	public void setUPC_TU (java.lang.String UPC_TU)
+	{
+		set_ValueNoCheck (COLUMNNAME_UPC_TU, UPC_TU);
+	}
+
+	/** Get TU-UPC.
+		@return TU-UPC	  */
+	@Override
+	public java.lang.String getUPC_TU () 
+	{
+		return (java.lang.String)get_Value(COLUMNNAME_UPC_TU);
 	}
 
 	/** Set Suchschlüssel.

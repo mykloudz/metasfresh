@@ -44,6 +44,7 @@ import org.compiere.model.I_C_Year;
 import org.compiere.model.I_M_PriceList;
 import org.compiere.model.I_M_PriceList_Version;
 import org.compiere.model.I_M_PricingSystem;
+import org.compiere.model.I_M_Product_Category;
 import org.compiere.util.Env;
 import org.compiere.util.TimeUtil;
 import org.junit.Assert;
@@ -52,7 +53,6 @@ import org.junit.Test;
 
 import de.metas.acct.api.IProductAcctDAO;
 import de.metas.adempiere.model.I_M_Product;
-import de.metas.adempiere.model.I_M_Product_Category;
 import de.metas.contracts.IFlatrateBL;
 import de.metas.contracts.invoicecandidate.FlatrateDataEntryHandler;
 import de.metas.contracts.model.I_C_Flatrate_Conditions;
@@ -162,7 +162,12 @@ public class FlatrateBLTest extends ContractsTestBase
 		location.setC_Country_ID(country.getC_Country_ID());
 		save(location);
 
+		final I_C_BPartner bpartner = newInstance(I_C_BPartner.class);
+		bpartner.setName("bpartner1");
+		save(bpartner);
+
 		final I_C_BPartner_Location bpLocation = newInstance(I_C_BPartner_Location.class);
+		bpLocation.setC_BPartner_ID(bpartner.getC_BPartner_ID());
 		bpLocation.setName("Location1");
 		bpLocation.setC_Location_ID(location.getC_Location_ID());
 		save(bpLocation);
@@ -173,6 +178,7 @@ public class FlatrateBLTest extends ContractsTestBase
 		currentTerm.setEndDate(TimeUtil.getDay(2014, 7, 27));
 		currentTerm.setC_Flatrate_Conditions(flatrateConditions);
 		currentTerm.setM_PricingSystem(pricingSystem);
+		currentTerm.setBill_BPartner_ID(bpartner.getC_BPartner_ID());
 		currentTerm.setBill_Location(bpLocation);
 		save(currentTerm);
 
@@ -434,7 +440,7 @@ public class FlatrateBLTest extends ContractsTestBase
 
 		// product
 		product = newInstance(I_M_Product.class);
-		product.setM_Product_Category(productCategory);
+		product.setM_Product_Category_ID(productCategory.getM_Product_Category_ID());
 		save(product);
 
 		// first conditions

@@ -12,6 +12,7 @@ import java.util.Properties;
 import org.adempiere.ad.trx.api.ITrx;
 import org.adempiere.model.InterfaceWrapperHelper;
 import org.adempiere.util.lang.Mutable;
+import org.adempiere.util.lang.impl.TableRecordReference;
 import org.compiere.model.I_M_Product;
 import org.compiere.util.TimeUtil;
 import org.junit.Before;
@@ -33,7 +34,7 @@ import de.metas.contracts.model.I_I_Flatrate_Term;
 import de.metas.contracts.model.X_C_Flatrate_Conditions;
 import de.metas.contracts.model.X_C_Flatrate_Term;
 import de.metas.contracts.model.X_C_Flatrate_Transition;
-import de.metas.impexp.ImportTableDescriptorRepository;
+import de.metas.impexp.format.ImportTableDescriptorRepository;
 import de.metas.impexp.processing.DBFunctionsRepository;
 import de.metas.inout.invoicecandidate.InOutLinesWithMissingInvoiceCandidate;
 import de.metas.inoutcandidate.api.IShipmentScheduleHandlerBL;
@@ -326,7 +327,7 @@ public class FlatrateTermImportProcess_SimpleCase_Test extends AbstractFlatrateT
 		assertThat(invoiceCandidate.getPriceActual()).isEqualByComparingTo(flatrateTerm.getPriceActual());
 		assertThat(invoiceCandidate.isTaxIncluded()).isEqualTo(flatrateTerm.isTaxIncluded());
 
-		final List<I_C_Invoice_Candidate> candsForTerm = iinvoiceCandDAO.retrieveReferencing(flatrateTerm);
+		final List<I_C_Invoice_Candidate> candsForTerm = iinvoiceCandDAO.retrieveReferencing(TableRecordReference.of(flatrateTerm));
 		assertThat(candsForTerm.size(), equalTo(1));
 	}
 

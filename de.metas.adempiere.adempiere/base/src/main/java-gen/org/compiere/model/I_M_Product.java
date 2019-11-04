@@ -32,8 +32,6 @@ public interface I_M_Product
 	 */
 	public int getAD_Client_ID();
 
-    /** Column definition for AD_Client_ID */
-    public static final org.adempiere.model.ModelColumn<I_M_Product, org.compiere.model.I_AD_Client> COLUMN_AD_Client_ID = new org.adempiere.model.ModelColumn<I_M_Product, org.compiere.model.I_AD_Client>(I_M_Product.class, "AD_Client_ID", org.compiere.model.I_AD_Client.class);
     /** Column name AD_Client_ID */
     public static final String COLUMNNAME_AD_Client_ID = "AD_Client_ID";
 
@@ -41,7 +39,7 @@ public interface I_M_Product
 	 * Set Sektion.
 	 * Organisatorische Einheit des Mandanten
 	 *
-	 * <br>Type: TableDir
+	 * <br>Type: Search
 	 * <br>Mandatory: true
 	 * <br>Virtual Column: false
 	 */
@@ -51,14 +49,12 @@ public interface I_M_Product
 	 * Get Sektion.
 	 * Organisatorische Einheit des Mandanten
 	 *
-	 * <br>Type: TableDir
+	 * <br>Type: Search
 	 * <br>Mandatory: true
 	 * <br>Virtual Column: false
 	 */
 	public int getAD_Org_ID();
 
-    /** Column definition for AD_Org_ID */
-    public static final org.adempiere.model.ModelColumn<I_M_Product, org.compiere.model.I_AD_Org> COLUMN_AD_Org_ID = new org.adempiere.model.ModelColumn<I_M_Product, org.compiere.model.I_AD_Org>(I_M_Product.class, "AD_Org_ID", org.compiere.model.I_AD_Org.class);
     /** Column name AD_Org_ID */
     public static final String COLUMNNAME_AD_Org_ID = "AD_Org_ID";
 
@@ -134,8 +130,6 @@ public interface I_M_Product
 	 */
 	public int getC_UOM_ID();
 
-    /** Column definition for C_UOM_ID */
-    public static final org.adempiere.model.ModelColumn<I_M_Product, org.compiere.model.I_C_UOM> COLUMN_C_UOM_ID = new org.adempiere.model.ModelColumn<I_M_Product, org.compiere.model.I_C_UOM>(I_M_Product.class, "C_UOM_ID", org.compiere.model.I_C_UOM.class);
     /** Column name C_UOM_ID */
     public static final String COLUMNNAME_C_UOM_ID = "C_UOM_ID";
 
@@ -189,8 +183,6 @@ public interface I_M_Product
 	 */
 	public int getCreatedBy();
 
-    /** Column definition for CreatedBy */
-    public static final org.adempiere.model.ModelColumn<I_M_Product, org.compiere.model.I_AD_User> COLUMN_CreatedBy = new org.adempiere.model.ModelColumn<I_M_Product, org.compiere.model.I_AD_User>(I_M_Product.class, "CreatedBy", org.compiere.model.I_AD_User.class);
     /** Column name CreatedBy */
     public static final String COLUMNNAME_CreatedBy = "CreatedBy";
 
@@ -364,6 +356,29 @@ public interface I_M_Product
     public static final String COLUMNNAME_DocumentNote = "DocumentNote";
 
 	/**
+	 * Set External ID.
+	 *
+	 * <br>Type: String
+	 * <br>Mandatory: false
+	 * <br>Virtual Column: false
+	 */
+	public void setExternalId (java.lang.String ExternalId);
+
+	/**
+	 * Get External ID.
+	 *
+	 * <br>Type: String
+	 * <br>Mandatory: false
+	 * <br>Virtual Column: false
+	 */
+	public java.lang.String getExternalId();
+
+    /** Column definition for ExternalId */
+    public static final org.adempiere.model.ModelColumn<I_M_Product, Object> COLUMN_ExternalId = new org.adempiere.model.ModelColumn<I_M_Product, Object>(I_M_Product.class, "ExternalId", null);
+    /** Column name ExternalId */
+    public static final String COLUMNNAME_ExternalId = "ExternalId";
+
+	/**
 	 * Set Group1.
 	 *
 	 * <br>Type: String
@@ -454,6 +469,29 @@ public interface I_M_Product
     public static final org.adempiere.model.ModelColumn<I_M_Product, Object> COLUMN_GroupCompensationType = new org.adempiere.model.ModelColumn<I_M_Product, Object>(I_M_Product.class, "GroupCompensationType", null);
     /** Column name GroupCompensationType */
     public static final String COLUMNNAME_GroupCompensationType = "GroupCompensationType";
+
+	/**
+	 * Set GTIN.
+	 *
+	 * <br>Type: String
+	 * <br>Mandatory: false
+	 * <br>Virtual Column: false
+	 */
+	public void setGTIN (java.lang.String GTIN);
+
+	/**
+	 * Get GTIN.
+	 *
+	 * <br>Type: String
+	 * <br>Mandatory: false
+	 * <br>Virtual Column: false
+	 */
+	public java.lang.String getGTIN();
+
+    /** Column definition for GTIN */
+    public static final org.adempiere.model.ModelColumn<I_M_Product, Object> COLUMN_GTIN = new org.adempiere.model.ModelColumn<I_M_Product, Object>(I_M_Product.class, "GTIN", null);
+    /** Column name GTIN */
+    public static final String COLUMNNAME_GTIN = "GTIN";
 
 	/**
 	 * Set Min. Garantie-Tage.
@@ -1006,6 +1044,33 @@ public interface I_M_Product
     public static final String COLUMNNAME_M_AttributeSetInstance_ID = "M_AttributeSetInstance_ID";
 
 	/**
+	 * Set Customs Tariff.
+	 *
+	 * <br>Type: Search
+	 * <br>Mandatory: false
+	 * <br>Virtual Column: false
+	 */
+	public void setM_CustomsTariff_ID (int M_CustomsTariff_ID);
+
+	/**
+	 * Get Customs Tariff.
+	 *
+	 * <br>Type: Search
+	 * <br>Mandatory: false
+	 * <br>Virtual Column: false
+	 */
+	public int getM_CustomsTariff_ID();
+
+	public org.compiere.model.I_M_CustomsTariff getM_CustomsTariff();
+
+	public void setM_CustomsTariff(org.compiere.model.I_M_CustomsTariff M_CustomsTariff);
+
+    /** Column definition for M_CustomsTariff_ID */
+    public static final org.adempiere.model.ModelColumn<I_M_Product, org.compiere.model.I_M_CustomsTariff> COLUMN_M_CustomsTariff_ID = new org.adempiere.model.ModelColumn<I_M_Product, org.compiere.model.I_M_CustomsTariff>(I_M_Product.class, "M_CustomsTariff_ID", org.compiere.model.I_M_CustomsTariff.class);
+    /** Column name M_CustomsTariff_ID */
+    public static final String COLUMNNAME_M_CustomsTariff_ID = "M_CustomsTariff_ID";
+
+	/**
 	 * Set Fracht-Kategorie.
 	 * Category of the Freight
 	 *
@@ -1054,8 +1119,6 @@ public interface I_M_Product
 	 */
 	public int getM_Locator_ID();
 
-    /** Column definition for M_Locator_ID */
-    public static final org.adempiere.model.ModelColumn<I_M_Product, org.compiere.model.I_M_Locator> COLUMN_M_Locator_ID = new org.adempiere.model.ModelColumn<I_M_Product, org.compiere.model.I_M_Locator>(I_M_Product.class, "M_Locator_ID", org.compiere.model.I_M_Locator.class);
     /** Column name M_Locator_ID */
     public static final String COLUMNNAME_M_Locator_ID = "M_Locator_ID";
 
@@ -1079,12 +1142,6 @@ public interface I_M_Product
 	 */
 	public int getM_Product_Category_ID();
 
-	public org.compiere.model.I_M_Product_Category getM_Product_Category();
-
-	public void setM_Product_Category(org.compiere.model.I_M_Product_Category M_Product_Category);
-
-    /** Column definition for M_Product_Category_ID */
-    public static final org.adempiere.model.ModelColumn<I_M_Product, org.compiere.model.I_M_Product_Category> COLUMN_M_Product_Category_ID = new org.adempiere.model.ModelColumn<I_M_Product, org.compiere.model.I_M_Product_Category>(I_M_Product.class, "M_Product_Category_ID", org.compiere.model.I_M_Product_Category.class);
     /** Column name M_Product_Category_ID */
     public static final String COLUMNNAME_M_Product_Category_ID = "M_Product_Category_ID";
 
@@ -1156,8 +1213,6 @@ public interface I_M_Product
 	 */
 	public int getManufacturer_ID();
 
-    /** Column definition for Manufacturer_ID */
-    public static final org.adempiere.model.ModelColumn<I_M_Product, org.compiere.model.I_C_BPartner> COLUMN_Manufacturer_ID = new org.adempiere.model.ModelColumn<I_M_Product, org.compiere.model.I_C_BPartner>(I_M_Product.class, "Manufacturer_ID", org.compiere.model.I_C_BPartner.class);
     /** Column name Manufacturer_ID */
     public static final String COLUMNNAME_Manufacturer_ID = "Manufacturer_ID";
 
@@ -1225,8 +1280,6 @@ public interface I_M_Product
 	 */
 	public int getPackage_UOM_ID();
 
-    /** Column definition for Package_UOM_ID */
-    public static final org.adempiere.model.ModelColumn<I_M_Product, org.compiere.model.I_C_UOM> COLUMN_Package_UOM_ID = new org.adempiere.model.ModelColumn<I_M_Product, org.compiere.model.I_C_UOM>(I_M_Product.class, "Package_UOM_ID", org.compiere.model.I_C_UOM.class);
     /** Column name Package_UOM_ID */
     public static final String COLUMNNAME_Package_UOM_ID = "Package_UOM_ID";
 
@@ -1389,7 +1442,7 @@ public interface I_M_Product
     public static final String COLUMNNAME_S_Resource_ID = "S_Resource_ID";
 
 	/**
-	 * Set Aussendienst.
+	 * Set Kundenbetreuer.
 	 *
 	 * <br>Type: Search
 	 * <br>Mandatory: false
@@ -1398,7 +1451,7 @@ public interface I_M_Product
 	public void setSalesRep_ID (int SalesRep_ID);
 
 	/**
-	 * Get Aussendienst.
+	 * Get Kundenbetreuer.
 	 *
 	 * <br>Type: Search
 	 * <br>Mandatory: false
@@ -1406,8 +1459,6 @@ public interface I_M_Product
 	 */
 	public int getSalesRep_ID();
 
-    /** Column definition for SalesRep_ID */
-    public static final org.adempiere.model.ModelColumn<I_M_Product, org.compiere.model.I_AD_User> COLUMN_SalesRep_ID = new org.adempiere.model.ModelColumn<I_M_Product, org.compiere.model.I_AD_User>(I_M_Product.class, "SalesRep_ID", org.compiere.model.I_AD_User.class);
     /** Column name SalesRep_ID */
     public static final String COLUMNNAME_SalesRep_ID = "SalesRep_ID";
 
@@ -1562,8 +1613,8 @@ public interface I_M_Product
     public static final String COLUMNNAME_UnitsPerPallet = "UnitsPerPallet";
 
 	/**
-	 * Set UPC/EAN.
-	 * Bar Code (Universal Product Code or its superset European Article Number)
+	 * Set UPC.
+	 * Produktidentifikation (Barcode) durch Universal Product Code oder European Article Number)
 	 *
 	 * <br>Type: String
 	 * <br>Mandatory: false
@@ -1572,8 +1623,8 @@ public interface I_M_Product
 	public void setUPC (java.lang.String UPC);
 
 	/**
-	 * Get UPC/EAN.
-	 * Bar Code (Universal Product Code or its superset European Article Number)
+	 * Get UPC.
+	 * Produktidentifikation (Barcode) durch Universal Product Code oder European Article Number)
 	 *
 	 * <br>Type: String
 	 * <br>Mandatory: false
@@ -1611,8 +1662,6 @@ public interface I_M_Product
 	 */
 	public int getUpdatedBy();
 
-    /** Column definition for UpdatedBy */
-    public static final org.adempiere.model.ModelColumn<I_M_Product, org.compiere.model.I_AD_User> COLUMN_UpdatedBy = new org.adempiere.model.ModelColumn<I_M_Product, org.compiere.model.I_AD_User>(I_M_Product.class, "UpdatedBy", org.compiere.model.I_AD_User.class);
     /** Column name UpdatedBy */
     public static final String COLUMNNAME_UpdatedBy = "UpdatedBy";
 

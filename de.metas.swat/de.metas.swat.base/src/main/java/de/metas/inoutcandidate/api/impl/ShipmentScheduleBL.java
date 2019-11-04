@@ -55,7 +55,6 @@ import org.adempiere.inout.util.ShipmentSchedulesDuringUpdate;
 import org.adempiere.mm.attributes.api.IAttributeSet;
 import org.adempiere.model.InterfaceWrapperHelper;
 import org.adempiere.model.PlainContextAware;
-import org.adempiere.util.agg.key.IAggregationKeyBuilder;
 import org.adempiere.util.lang.IAutoCloseable;
 import org.adempiere.util.lang.IContextAware;
 import org.adempiere.util.lang.NullAutoCloseable;
@@ -68,6 +67,7 @@ import org.compiere.model.I_C_Order;
 import org.compiere.model.I_C_OrderLine;
 import org.compiere.model.I_C_UOM;
 import org.compiere.model.I_M_AttributeSetInstance;
+import org.compiere.model.X_C_OrderLine;
 import org.compiere.util.TimeUtil;
 import org.slf4j.Logger;
 import org.springframework.stereotype.Service;
@@ -109,6 +109,7 @@ import de.metas.logging.LogManager;
 import de.metas.material.cockpit.stock.StockRepository;
 import de.metas.order.DeliveryRule;
 import de.metas.order.IOrderBL;
+import de.metas.order.IOrderDAO;
 import de.metas.order.OrderId;
 import de.metas.order.OrderLineId;
 import de.metas.organization.OrgId;
@@ -342,9 +343,9 @@ public class ShipmentScheduleBL implements IShipmentScheduleBL
 
 				if (isDropShip)
 				{
-					// if there is bpp that is dropship and has a C_BPartner_Vendor_ID, set it in the schedule
-					final org.compiere.model.I_C_BPartner bpVendor = bpp.getC_BPartner_Vendor(); // the customer's vendor for the given product
-					sched.setC_BPartner_Vendor_ID(bpVendor.getC_BPartner_ID());
+					// if there is bpp that is dropship and has a C_BPartner_Vendor_ID,
+					// set the customer's vendor for the given product in the schedule
+					sched.setC_BPartner_Vendor_ID(bpp.getC_BPartner_Vendor_ID());
 				}
 
 				// set the dropship flag in shipment schedule as it is in the bpp
@@ -379,9 +380,10 @@ public class ShipmentScheduleBL implements IShipmentScheduleBL
 		}
 	}
 
-	private void updateHeaderAggregationKey(final I_M_ShipmentSchedule sched)
+	@Override
+	public void updateHeaderAggregationKey(@NonNull final I_M_ShipmentSchedule sched)
 	{
-		final IAggregationKeyBuilder<I_M_ShipmentSchedule> shipmentScheduleKeyBuilder = mkShipmentHeaderAggregationKeyBuilder();
+		final ShipmentScheduleHeaderAggregationKeyBuilder shipmentScheduleKeyBuilder = mkShipmentHeaderAggregationKeyBuilder();
 		final String headerAggregationKey = shipmentScheduleKeyBuilder.buildKey(sched);
 		sched.setHeaderAggregationKey(headerAggregationKey);
 	}
@@ -801,6 +803,13 @@ public class ShipmentScheduleBL implements IShipmentScheduleBL
 	{
 		final IProductBL productBL = Services.get(IProductBL.class);
 
+		final boolean isCatchWeight = isCatchWeight(sched);
+		if (!isCatchWeight)
+		{
+			sched.setCatch_UOM_ID(-1);
+			return;
+		}
+
 		final Optional<UomId> catchUOMId = productBL.getCatchUOMId(ProductId.ofRepoId(sched.getM_Product_ID()));
 		final Integer catchUomRepoId = catchUOMId.map(UomId::getRepoId).orElse(0);
 
@@ -939,7 +948,7 @@ public class ShipmentScheduleBL implements IShipmentScheduleBL
 	}
 
 	@Override
-	public IAggregationKeyBuilder<I_M_ShipmentSchedule> mkShipmentHeaderAggregationKeyBuilder()
+	public ShipmentScheduleHeaderAggregationKeyBuilder mkShipmentHeaderAggregationKeyBuilder()
 	{
 		return new ShipmentScheduleHeaderAggregationKeyBuilder();
 	}
@@ -1115,8 +1124,8 @@ public class ShipmentScheduleBL implements IShipmentScheduleBL
 		final int count = queryBL
 				.createQueryBuilder(I_M_ShipmentSchedule.class)
 				.addOnlyActiveRecordsFilter()
-				.addEqualsFilter(I_M_ShipmentSchedule.COLUMN_M_Product_ID, productId)
-				.addNotEqualsFilter(I_M_ShipmentSchedule.COLUMN_Catch_UOM_ID, catchUomRepoId)
+				.addEqualsFilter(I_M_ShipmentSchedule.COLUMNNAME_M_Product_ID, productId)
+				.addNotEqualsFilter(I_M_ShipmentSchedule.COLUMNNAME_Catch_UOM_ID, catchUomRepoId)
 				.addEqualsFilter(I_M_ShipmentSchedule.COLUMN_Processed, false)
 				.filter(lockManager.getNotLockedFilter(I_M_ShipmentSchedule.class))
 				.create()
@@ -1160,10 +1169,18 @@ public class ShipmentScheduleBL implements IShipmentScheduleBL
 	}
 
 	@Override
-	public Optional<ShipmentAllocationBestBeforePolicy> getBestBeforePolicy(@NonNull final ShipmentScheduleId id)
+	public ShipmentAllocationBestBeforePolicy getBestBeforePolicy(@NonNull final ShipmentScheduleId id)
 	{
 		final I_M_ShipmentSchedule shipmentSchedule = getById(id);
-		return ShipmentAllocationBestBeforePolicy.optionalOfNullableCode(shipmentSchedule.getShipmentAllocation_BestBefore_Policy());
+		final Optional<ShipmentAllocationBestBeforePolicy> bestBeforePolicy = ShipmentAllocationBestBeforePolicy.optionalOfNullableCode(shipmentSchedule.getShipmentAllocation_BestBefore_Policy());
+		if (bestBeforePolicy.isPresent())
+		{
+			return bestBeforePolicy.get();
+		}
+
+		final IBPartnerBL bpartnerBL = Services.get(IBPartnerBL.class);
+		final BPartnerId bpartnerId = getBPartnerId(shipmentSchedule);
+		return bpartnerBL.getBestBeforePolicy(bpartnerId);
 	}
 
 	@Override
@@ -1215,6 +1232,26 @@ public class ShipmentScheduleBL implements IShipmentScheduleBL
 		{
 			record.setM_AttributeSetInstance_ID(from.getAsiId().getRepoId());
 		}
+	}
+
+	@Override
+	public boolean isCatchWeight(@NonNull final I_M_ShipmentSchedule shipmentScheduleRecord)
+	{
+		final IOrderDAO orderDAO = Services.get(IOrderDAO.class);
+
+		final int orderLineId = shipmentScheduleRecord.getC_OrderLine_ID();
+
+		if (orderLineId < 0)
+		{
+			// returning true to keep the old behavior for shipment schedules that are not for sales orders.
+			return true;
+		}
+
+		final I_C_OrderLine orderLineRecord = orderDAO.getOrderLineById(orderLineId);
+
+		final String invoicableQtyBasedOn = orderLineRecord.getInvoicableQtyBasedOn();
+
+		return X_C_OrderLine.INVOICABLEQTYBASEDON_CatchWeight.equals(invoicableQtyBasedOn);
 	}
 
 }

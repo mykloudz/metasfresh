@@ -17,6 +17,7 @@ import de.metas.handlingunits.HuId;
 import de.metas.handlingunits.HuPackingInstructionsId;
 import de.metas.handlingunits.picking.candidate.commands.AddQtyToHUCommand;
 import de.metas.handlingunits.picking.candidate.commands.ClosePickingCandidateCommand;
+import de.metas.handlingunits.picking.candidate.commands.CreatePickingCandidatesCommand;
 import de.metas.handlingunits.picking.candidate.commands.PickHUCommand;
 import de.metas.handlingunits.picking.candidate.commands.PickHUResult;
 import de.metas.handlingunits.picking.candidate.commands.ProcessHUsAndPickingCandidateCommand;
@@ -91,6 +92,19 @@ public class PickingCandidateService
 		return pickingCandidateRepository.getByShipmentScheduleIdAndStatus(shipmentScheduleId, status);
 	}
 
+	public List<PickingCandidate> getByShipmentScheduleIdsAndStatus(
+			@NonNull final Set<ShipmentScheduleId> shipmentScheduleIds,
+			@NonNull final PickingCandidateStatus status)
+	{
+		return pickingCandidateRepository.getByShipmentScheduleIdsAndStatus(shipmentScheduleIds, status);
+	}
+
+	public boolean existsPickingCandidates(@NonNull final Set<ShipmentScheduleId> shipmentScheduleIds)
+	{
+		return pickingCandidateRepository.existsPickingCandidates(shipmentScheduleIds);
+	}
+
+
 	public PickHUResult pickHU(final PickHURequest request)
 	{
 		return PickHUCommand.builder()
@@ -124,20 +138,20 @@ public class PickingCandidateService
 	public void removeQtyFromHU(final RemoveQtyFromHURequest request)
 	{
 		RemoveQtyFromHUCommand.builder()
-				.sourceHUsRepository(sourceHUsRepository)
-				.pickingCandidateRepository(pickingCandidateRepository)
-				.request(request)
-				.build()
-				.perform();
+		.sourceHUsRepository(sourceHUsRepository)
+		.pickingCandidateRepository(pickingCandidateRepository)
+		.request(request)
+		.build()
+		.perform();
 	}
 
 	public void removeHUFromPickingSlot(final HuId huId)
 	{
 		RemoveHUFromPickingSlotCommand.builder()
-				.pickingCandidateRepository(pickingCandidateRepository)
-				.huId(huId)
-				.build()
-				.perform();
+		.pickingCandidateRepository(pickingCandidateRepository)
+		.huId(huId)
+		.build()
+		.perform();
 	}
 
 	/**
@@ -173,11 +187,11 @@ public class PickingCandidateService
 		//
 		// Automatically close those processed picking candidates which are NOT on a rack system picking slot. (gh2740)
 		ClosePickingCandidateCommand.builder()
-				.pickingCandidateRepository(pickingCandidateRepository)
-				.pickingCandidates(processedPickingCandidates)
-				.pickingSlotIsRackSystem(false)
-				.build()
-				.perform();
+		.pickingCandidateRepository(pickingCandidateRepository)
+		.pickingCandidates(processedPickingCandidates)
+		.pickingSlotIsRackSystem(false)
+		.build()
+		.perform();
 	}
 
 	public ProcessPickingCandidatesResult process(@NonNull final Set<PickingCandidateId> pickingCandidateIds)
@@ -192,11 +206,11 @@ public class PickingCandidateService
 	public void unprocessForHUId(final HuId huId)
 	{
 		UnProcessPickingCandidateCommand.builder()
-				.sourceHUsRepository(sourceHUsRepository)
-				.pickingCandidateRepository(pickingCandidateRepository)
-				.huId(huId)
-				.build()
-				.perform();
+		.sourceHUsRepository(sourceHUsRepository)
+		.pickingCandidateRepository(pickingCandidateRepository)
+		.huId(huId)
+		.build()
+		.perform();
 	}
 
 	public void closeForShipmentSchedules(@NonNull final CloseForShipmentSchedulesRequest request)
@@ -206,12 +220,12 @@ public class PickingCandidateService
 				PickingCandidateStatus.Processed);
 
 		ClosePickingCandidateCommand.builder()
-				.pickingCandidateRepository(pickingCandidateRepository)
-				.pickingCandidates(pickingCandidates)
-				.pickingSlotIsRackSystem(request.getPickingSlotIsRackSystem())
-				.failOnError(request.isFailOnError())
-				.build()
-				.perform();
+		.pickingCandidateRepository(pickingCandidateRepository)
+		.pickingCandidates(pickingCandidates)
+		.pickingSlotIsRackSystem(request.getPickingSlotIsRackSystem())
+		.failOnError(request.isFailOnError())
+		.build()
+		.perform();
 	}
 
 	public void inactivateForHUId(@NonNull final HuId huId)
@@ -255,9 +269,20 @@ public class PickingCandidateService
 				.perform();
 
 	}
+
 	
 	public List<PickingCandidate> getPickingCandidatesForShipmentSchedules(final Set<ShipmentScheduleId> shipmentScheduleIds)
 	{
 		return pickingCandidateRepository.getByShipmentScheduleIds(shipmentScheduleIds);
+	}
+
+
+	public PickHUResult createAndSavePickingCandidates(@NonNull final PickHURequest request)
+	{
+		return CreatePickingCandidatesCommand.builder()
+				.pickingCandidateRepository(pickingCandidateRepository)
+				.request(request)
+				.build()
+				.perform();
 	}
 }

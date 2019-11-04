@@ -52,7 +52,7 @@ import lombok.NonNull;
  */
 
 /**
- * 
+ *
  * @task http://dewiki908/mediawiki/index.php/09623_old_incoice_location_taken_sometimes_in_excel_import_%28104714160405%29
  */
 @Component
@@ -61,11 +61,12 @@ public class DefaultOLCandValidator implements IOLCandValidator
 	// services
 	private static final Logger logger = LogManager.getLogger(DefaultOLCandValidator.class);
 	private final IMsgBL msgBL = Services.get(IMsgBL.class);
-	private final IOLCandBL olCandBL = Services.get(IOLCandBL.class);
 	private final IOLCandEffectiveValuesBL olCandEffectiveValuesBL = Services.get(IOLCandEffectiveValuesBL.class);
 	private final IUOMDAO uomsRepo = Services.get(IUOMDAO.class);
 	private final IUOMConversionBL uomConversionBL = Services.get(IUOMConversionBL.class);
 	private final IDeveloperModeBL developerModeBL = Services.get(IDeveloperModeBL.class);
+
+	private final IOLCandBL olCandBL;
 
 	// error messages
 	private static final String ERR_Bill_Location_Inactive = "ERR_Bill_Location_Inactive";
@@ -79,6 +80,11 @@ public class DefaultOLCandValidator implements IOLCandValidator
 	 * @task http://dewiki908/mediawiki/index.php/08803_ADR_from_Partner_versus_Pricelist
 	 */
 	private static final ModelDynAttributeAccessor<I_C_OLCand, IPricingResult> DYNATTR_OLCAND_PRICEVALIDATOR_PRICING_RESULT = new ModelDynAttributeAccessor<>(DefaultOLCandValidator.class.getSimpleName() + "#pricingResult", IPricingResult.class);
+
+	public DefaultOLCandValidator(@NonNull final IOLCandBL olCandBL)
+	{
+		this.olCandBL = olCandBL;
+	}
 
 	@Override
 	public boolean validate(final I_C_OLCand olCand)
@@ -228,8 +234,9 @@ public class DefaultOLCandValidator implements IOLCandValidator
 		}
 		else
 		{
-			// this olCand has no TU/Gebinde price-UOM, so we just continuer with the olCand's imported UOM
-			olCand.setC_UOM_Internal_ID(olCand.getC_UOM_ID());
+			// this olCand has no TU/Gebinde price-UOM, so we just continue with the olCand's imported UOM
+			final UomId internalUomId = olCandEffectiveValuesBL.getRecordOrStockUOMId(olCand);
+			olCand.setC_UOM_Internal_ID(internalUomId.getRepoId());
 		}
 
 		// note: the customer's price remains as it is in the "PriceEntered" column
