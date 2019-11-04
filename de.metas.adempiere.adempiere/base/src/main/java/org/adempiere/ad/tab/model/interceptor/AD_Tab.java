@@ -44,7 +44,7 @@ import de.metas.util.Services;
 
 @Interceptor(I_AD_Tab.class)
 @Callout(I_AD_Tab.class)
-@Component("org.adempiere.ad.tab.model.interceptor.AD_Tab")
+@Component
 public class AD_Tab
 {
 	@Init
@@ -79,10 +79,15 @@ public class AD_Tab
 		updateTabFromElement(tab);
 	}
 
+	@ModelChange(timings = { ModelValidator.TYPE_BEFORE_NEW, ModelValidator.TYPE_BEFORE_CHANGE }, ifColumnsChanged = I_AD_Tab.COLUMNNAME_AD_Element_ID)
+	public void onBeforeTabSave_WhenElementIdChanged(final I_AD_Tab tab)
+	{
+		updateTabFromElement(tab);
+	}
+
 	@ModelChange(timings = { ModelValidator.TYPE_AFTER_NEW, ModelValidator.TYPE_AFTER_CHANGE }, ifColumnsChanged = I_AD_Tab.COLUMNNAME_AD_Element_ID)
 	public void onAfterTabSave_WhenElementIdChanged(final I_AD_Tab tab)
 	{
-		updateTabFromElement(tab);
 		updateTranslationsForElement(tab);
 		recreateElementLinkForTab(tab);
 	}

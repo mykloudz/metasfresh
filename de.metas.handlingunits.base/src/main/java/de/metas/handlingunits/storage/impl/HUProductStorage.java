@@ -100,7 +100,7 @@ import lombok.NonNull;
 		{
 			return Quantity.QTY_INFINITE;
 		}
-		return capacityAvailable.getCapacityQty();
+		return capacityAvailable.toBigDecimal();
 	}
 
 	@Override
@@ -119,16 +119,16 @@ import lombok.NonNull;
 	}
 
 	@Override
-	public final BigDecimal getQtyInStockingUOM()
+	public final Quantity getQtyInStockingUOM()
 	{
-		final I_C_UOM productUOM = Services.get(IProductBL.class).getStockingUOM(getProductId());
-		return getQty(productUOM).getAsBigDecimal();
+		final I_C_UOM productUOM = Services.get(IProductBL.class).getStockUOM(getProductId());
+		return getQty(productUOM);
 	}
 
 	@Override
 	public BigDecimal getQtyCapacity()
 	{
-		return capacityTotal.getCapacityQty();
+		return capacityTotal.toBigDecimal();
 	}
 
 	@Override

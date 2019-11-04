@@ -10,9 +10,209 @@ Additional notes:
 
 Here come the actual release notes:
 
-# metasfresh 5.116
+# metasfresh 5.126
+## Features
+* metasfresh-webui-frontend
+  * [#2431](https://github.com/metasfresh/metasfresh-webui-frontend/issues/2431) Remove number field's arrows for changing value
+
+# metasfresh 5.125
+## Features
+* metasfresh
+  * [#5522](https://github.com/metasfresh/metasfresh/issues/5522) Commission calculation
+  * [#5566](https://github.com/metasfresh/metasfresh/issues/5566) Add integration with Google Maps
+  * [#5611](https://github.com/metasfresh/metasfresh/issues/5611) Add DHL Shipper and DHL integration
+  * [#5683](https://github.com/metasfresh/metasfresh/issues/5683) Empties Saldo report per Day
+
+## Fixes
+* metasfresh
+  * [#5556](https://github.com/metasfresh/metasfresh/issues/5556) Prevent Running Link Organisation Process if Organisation Field is empty
+  * [#5666](https://github.com/metasfresh/metasfresh/issues/5666) Freight Cost invoice candidates bug
+  * [#5687](https://github.com/metasfresh/metasfresh/issues/5687) Assumption failure: There is no active M_Attribute record with M_Attribute.Value=M_Material_Tracking_ID
+  * [#5701](https://github.com/metasfresh/metasfresh/issues/5701) Document no not updated when changing doctype
+
+# metasfresh 5.124
+## Features
+* metasfresh
+  * [#5602](https://github.com/metasfresh/metasfresh/issues/5602) Cashbook Window
+  * [#5656](https://github.com/metasfresh/metasfresh/issues/5656) EDI-Tweaks
+
+## Fixes
+* metasfresh-webui-frontend
+  * [#2370](https://github.com/metasfresh/metasfresh-webui-frontend/issues/2370) Performance imporovement for Grid Views/ Table Views
+  
+* metasfresh
+  * [#5242](https://github.com/metasfresh/metasfresh/issues/5242) Picking Terminal v2: Cannot fully load AllocationRequest
+  * [#5606](https://github.com/metasfresh/metasfresh/issues/5606) Payment window calculation of skonto yes/ no when adjusting date
+  * [#5628](https://github.com/metasfresh/metasfresh/issues/5628) Partner relations don't work properly in sales order
+  * [#5659](https://github.com/metasfresh/metasfresh/issues/5659) Picklist in Picking Terminal v2 automatically picks, but shall not
+
+
+# metasfresh 5.123
+## Features
+* metasfresh
+  * [#5575](https://github.com/metasfresh/metasfresh/issues/5575) Add `ExternalId` to Product
+  * [#5589](https://github.com/metasfresh/metasfresh/issues/5589) New Window for BOM Components & Reference to BOM
+  * [#5592](https://github.com/metasfresh/metasfresh/issues/5592) Show warehouse search key value in Grid View
+  * [#5609](https://github.com/metasfresh/metasfresh/issues/5609) persistent object: log warning if changing an PO on after new/change
+  * [#5616](https://github.com/metasfresh/metasfresh/issues/5616) New Tab Ingredients in Product window
+  * [#5620](https://github.com/metasfresh/metasfresh/issues/5620) Set automatically Name field from AD_UI_Element
+  * [#5625](https://github.com/metasfresh/metasfresh/issues/5625) Material Tracking - change quality discount base
+  * [#5639](https://github.com/metasfresh/metasfresh/issues/5639) Print Picklist from Picking terminal v2
+  * [#5645](https://github.com/metasfresh/metasfresh/issues/5645) BOM Components followup - Comment, Change notice and Expected result to be added
+  * [#5564](https://github.com/metasfresh/metasfresh/issues/5564) Import Process Performance
+  * [#5644](https://github.com/metasfresh/metasfresh/issues/5644) Action: Update Invoice Location and contact for all selected lines
+  * [#5649](https://github.com/metasfresh/metasfresh/issues/5649) GTIN in Product window
+  * [#5652](https://github.com/metasfresh/metasfresh/issues/5652) OLCand - support requests without BPartner-Location
+
+## Fixes
+* metasfresh
+  * [#5598](https://github.com/metasfresh/metasfresh/issues/5598) NPE Async for sending email from DocOutbound
+  * [#5599](https://github.com/metasfresh/metasfresh/issues/5599) No invoice from Picking Terminal 2: NetAmtToInvoice checksum not match
+  * [#5600](https://github.com/metasfresh/metasfresh/issues/5600) No invoice bc of QuantitiesUOMNotMatchingExpection
+  * [#5613](https://github.com/metasfresh/metasfresh/issues/5613) Partner relations for invoice location allows only one invoice receipient
+  * [#5615](https://github.com/metasfresh/metasfresh/pull/5615) Ad_tab fix `ModelValidator.TYPE_AFTER_NEW, ModelValidator.TYPE_AFTER_CHANGE` error
+  * [#5617](https://github.com/metasfresh/metasfresh/pull/5617) bugfix wrt bpartner-lookup just via GLN
+  * [#5629](https://github.com/metasfresh/metasfresh/issues/5629) Can't create a new order
+  
+* metasfresh-webui-api
+  * [#1270](https://github.com/metasfresh/metasfresh-webui-api/issues/1270) Org-ID not found Callout error
+
+* metasfresh-webui-frontend
+  * [#2394](https://github.com/metasfresh/metasfresh-webui-frontend/issues/2394) Rounded corners missing in mandatory fields
+  * [#2393](https://github.com/metasfresh/metasfresh-webui-frontend/issues/2393) Sales Order Line: fix batch entry layout
+  * [#2403](https://github.com/metasfresh/metasfresh-webui-frontend/issues/2403) Widgets not properly automatically updated
+  * [#2405](https://github.com/metasfresh/metasfresh-webui-frontend/issues/2405) Fix sorting in tabs-tables
+
+# metasfresh 5.122
+## Features
+* metasfresh
+  * [#2518](https://github.com/metasfresh/metasfresh/issues/2518) Add Zahlung einlesen in Action menu for purchase invoice
+  * [#5569](https://github.com/metasfresh/metasfresh/issues/5569) Mandatory Field in Purchase Order: Warehouse ID
+  * [#5587](https://github.com/metasfresh/metasfresh/issues/5587) New Window for Packvorschrift (CU-TU) Standalone
+
+## Fixes
+* metasfresh-webui-frontend
+  * [#2364](https://github.com/metasfresh/metasfresh-webui-frontend/issues/2364) Organisation and client field misalligned
+  * [#2367](https://github.com/metasfresh/metasfresh-webui-frontend/issues/2367) Adjustments for dates in filters
+  * [#2383](https://github.com/metasfresh/metasfresh-webui-frontend/issues/2383) Fix filter widgets typing
+  * [#2385](https://github.com/metasfresh/metasfresh-webui-frontend/issues/2385) Border radius disturbing on Lookup Fields
+  * [#2391](https://github.com/metasfresh/metasfresh-webui-frontend/issues/2391) Date range picker is not working anymore in Action parms
+
+# metasfresh 5.121
+
+## Features
+* metasfresh
+  * [#5443](https://github.com/metasfresh/metasfresh/issues/5443) Have dedicated Window for UI Elements
+  * [#5444](https://github.com/metasfresh/metasfresh/issues/5444) Have dedicated window for organisational master data business partner
+  * [#5523](https://github.com/metasfresh/metasfresh/pull/5523) Add role update and process documents to webui menu tree
+  * [#5527](https://github.com/metasfresh/metasfresh/pull/5527) Lookup widget instead of dropdown
+  * [#5538](https://github.com/metasfresh/metasfresh/pull/5538) Pricesystem shall be search widget not dropdown
+  * [#5540](https://github.com/metasfresh/metasfresh/issues/5540) Implement receipt CU Label
+  * [#5544](https://github.com/metasfresh/metasfresh/issues/5544) Picking with bestBefore shortest/ longest option
+  * [#5549](https://github.com/metasfresh/metasfresh/pull/5549) New Window: Unposted Documents
+  * [#5554](https://github.com/metasfresh/metasfresh/pull/5554) New Window in WebUI for Matched Invoices
+  * [#5555](https://github.com/metasfresh/metasfresh/issues/5555) procurement webapp: Info Page: show HTML text instead of PREformated text
+
+## Fixes
+* metasfresh
+  * [#5529](https://github.com/metasfresh/metasfresh/issues/5529) Bestellkontrolle (Barcode): Packing Instruction cut off
+  * [#5550](https://github.com/metasfresh/metasfresh/pull/5550) Avoid starting main spring boot classes if they are not started standalone
+  * [#5558](https://github.com/metasfresh/metasfresh/issues/5558) webapi log is flooded with various warnings/errors
+  * [#5574](https://github.com/metasfresh/metasfresh/issues/5574) Error updating M_ShipmentSchedule that references a flatrate term
+
+* metasfresh-webui-api
+  * [#1252](https://github.com/metasfresh/metasfresh-webui-api/issues/1252) Org Timezone Berlin: Promised Date still dependent on local timezone
+  * [#1257](https://github.com/metasfresh/metasfresh-webui-api/pull/1257) Organisation as Search Widget
+
+# metasfresh 5.120
+
+## Features
+* metasfresh
+  * [#5487](https://github.com/metasfresh/metasfresh/issues/5487) Allow Copy for M_ProductPrice
+  * [#5519](https://github.com/metasfresh/metasfresh/pull/5519) Sektion als Suchfeld
+
+# Fixes
+* metasfresh
+  * [#5506](https://github.com/metasfresh/metasfresh/issues/5506) Dunning Disposition Action to set Dunning Grace does not update existing Dates
+  * [#5514](https://github.com/metasfresh/metasfresh/issues/5514) forum-datenaustausch.ch only update biller masterdata
+  * [#5495](https://github.com/metasfresh/metasfresh/issues/5495) allow material dispo to run within app
+
+* metasfresh-webui-frontend
+  * [#2359](https://github.com/metasfresh/metasfresh-webui-frontend/issues/2359) Date filter problem in Material Cockpit
+  * [#2835](https://github.com/metasfresh/me03/issues/2835) "Created" date looking weird
+  * [#2844](https://github.com/metasfresh/me03/issues/2844) Record stays on same position after going next page after grid edit
+
+
+# metasfresh 5.119
+
+## Features
+* metasfresh
+  * [#4352](https://github.com/metasfresh/metasfresh/issues/4352) WebUI Project and ProjectType Window
+  * [#5384](https://github.com/metasfresh/metasfresh/issues/5384) Catch Weight invoicing
+  * [#5450](https://github.com/metasfresh/metasfresh/issues/5450) New Action Price update für basepricelist and customer pricelist
+  * [#5453](https://github.com/metasfresh/metasfresh/issues/5453) Data Import REST endpoints
+  * [#5461](https://github.com/metasfresh/metasfresh/issues/5461) Have a way to fix native sequence problems from metasfresh
+  * [#5465](https://github.com/metasfresh/metasfresh/issues/5465) requests: when sales rep is changed, notify the new sales rep about the change
+  * [#5470](https://github.com/metasfresh/metasfresh/issues/5470) Copy discount schema breaks of product - new process
+  * [#5471](https://github.com/metasfresh/metasfresh/issues/5471) Date Filter in Payment Window
+  * [#5478](https://github.com/metasfresh/metasfresh/issues/5478) Allow copy with details for Payment
+  * [#5479](https://github.com/metasfresh/metasfresh/issues/5479) Ändert MF etwas beim external_factor im xml an den Kanton (KT_xx)
+  * [#5494](https://github.com/metasfresh/metasfresh/issues/5494) Change inventory import for the generic case
+
+* metasfresh-webui-frontend
+  * [#2350](https://github.com/metasfresh/metasfresh-webui-frontend/issues/2350) Respect new lines in webui texts
+
+## Fixes
+* metasfresh
+  * [#5466](https://github.com/metasfresh/metasfresh/issues/5466) Assumption failure: repoId > 0 but it was 0 Additional parameters in notifications
+  * [#5477](https://github.com/metasfresh/metasfresh/issues/5477) NullPointer Exception beim Import von Rückweisungen der Krankenkasse
+  
+* metasfresh-webui-frontend
+  * [#2351](https://github.com/metasfresh/metasfresh-webui-frontend/issues/2351) The date is displayed differently in grid view vs. single view
+
+
+# metasfresh 5.118
 
 # Features
+* metasfresh
+  * [#5423](https://github.com/metasfresh/metasfresh/issues/5423) Drafted PP Orders shall not create demands
+  * [#5440](https://github.com/metasfresh/metasfresh/issues/5440) Easy shipment candidate recording (Modal Overlay)
+  * [#5447](https://github.com/metasfresh/metasfresh/issues/5447) Optionally include C_Location changes in parent record's changelog
+  * [#5457](https://github.com/metasfresh/metasfresh/issues/5457) MaterialTracking - Support regular PP_Orders with heterogenous components
+  * [#5471](https://github.com/metasfresh/metasfresh/issues/5471) Date Filter in Payment Window
+
+* metasfresh-webui-api
+  * [#1245](https://github.com/metasfresh/metasfresh-webui-api/issues/1245) webui cache reset: don't invalidate new/changed documents
+
+## Fixes
+* metasfresh 
+  * [#5380](https://github.com/metasfresh/metasfresh/issues/5380) Fix timezone issues
+
+* metasfresh-webui-api
+  * [#1248](https://github.com/metasfresh/metasfresh-webui-api/issues/1248) webui: don't apply role permissions when loading layout fields
+
+# metasfresh 5.117
+
+## Features
+* metasfresh
+  * [#5426](https://github.com/metasfresh/metasfresh/issues/5426) Implement MetasfreshBeanNameGenerator to avoid spring bean name collisions in case of model Interceptors
+
+* metasfresh-e2e
+  * [#125](https://github.com/metasfresh/metasfresh-e2e/issues/125) Open Handling Unit Editor
+  * [#145](https://github.com/metasfresh/metasfresh-e2e/issues/145) Purchase order from sales order
+  * [#210](https://github.com/metasfresh/metasfresh-e2e/issues/210) Create material receipt with quality issue
+
+## Fixes
+* metasfresh
+  * [#5193](https://github.com/metasfresh/metasfresh/issues/5193) Error when trying to issue for >1 component in manufacturing
+
+
+* metasfresh-webui-api
+  * [#2334](https://github.com/metasfresh/metasfresh-webui-frontend/issues/2334) Error when layout shortcuts is not defined
+
+# metasfresh 5.116
+
+## Features
 * metasfresh-e2e
   * [#116](https://github.com/metasfresh/metasfresh-e2e/issues/116) Create new tour and transportation order
   * [#136](https://github.com/metasfresh/metasfresh-e2e/issues/136) Change product price (product window) and use it

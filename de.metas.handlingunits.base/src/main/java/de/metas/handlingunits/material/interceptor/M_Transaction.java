@@ -6,7 +6,6 @@ import org.adempiere.ad.modelvalidator.ModelChangeType;
 import org.adempiere.ad.modelvalidator.ModelChangeUtil;
 import org.adempiere.ad.modelvalidator.annotations.Interceptor;
 import org.adempiere.ad.modelvalidator.annotations.ModelChange;
-import org.adempiere.ad.trx.api.ITrxListenerManager.TrxEventTiming;
 import org.adempiere.ad.trx.api.ITrxManager;
 import org.compiere.model.I_M_Transaction;
 import org.compiere.model.ModelValidator;
@@ -39,15 +38,20 @@ import lombok.NonNull;
  * #L%
  */
 @Interceptor(I_M_Transaction.class)
-@Component("de.metas.handlingunits.material.interceptor.M_Transaction")
+@Component
 public class M_Transaction
 {
+	private final ITrxManager trxManager = Services.get(ITrxManager.class);
 	private final PostMaterialEventService materialEventService;
+	private final M_Transaction_TransactionEventCreator mtransactionEventCreator;
+	private final TransactionDescriptorFactory transactionDescriptorFactory;
 
 	public M_Transaction(
 			@NonNull final PostMaterialEventService materialEventService)
 	{
 		this.materialEventService = materialEventService;
+		this.mtransactionEventCreator = new M_Transaction_TransactionEventCreator();
+		this.transactionDescriptorFactory = new TransactionDescriptorFactory();
 	}
 
 	/**
@@ -65,19 +69,15 @@ public class M_Transaction
 			@NonNull final I_M_Transaction transactionRecord,
 			@NonNull final ModelChangeType type)
 	{
-		final TransactionDescriptorFactory transactionFactory = new TransactionDescriptorFactory();
-		final TransactionDescriptor transaction = transactionFactory.ofRecord(transactionRecord);
+		final TransactionDescriptor transaction = transactionDescriptorFactory.ofRecord(transactionRecord);
 		final boolean deleted = type.isDelete() || ModelChangeUtil.isJustDeactivated(transactionRecord);
 
-		Services.get(ITrxManager.class)
-				.getCurrentTrxListenerManagerOrAutoCommit()
-				.newEventListener(TrxEventTiming.AFTER_COMMIT)
-				.registerHandlingMethod(trxEvent -> createAndPostEventsNow(transaction, deleted));
+		trxManager.runAfterCommit(() -> createAndPostEventsNow(transaction, deleted));
 	}
 
 	private void createAndPostEventsNow(final TransactionDescriptor transaction, final boolean deleted)
 	{
-		final List<MaterialEvent> events = M_Transaction_TransactionEventCreator.INSTANCE.createEventsForTransaction(transaction, deleted);
+		final List<MaterialEvent> events = mtransactionEventCreator.createEventsForTransaction(transaction, deleted);
 		for (final MaterialEvent event : events)
 		{
 			materialEventService.postEventNow(event);

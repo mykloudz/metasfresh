@@ -45,6 +45,7 @@ import org.eevolution.api.IPPCostCollectorBL;
 import org.eevolution.api.IPPCostCollectorDAO;
 import org.eevolution.api.IPPOrderDAO;
 import org.eevolution.api.IPPOrderRoutingRepository;
+import org.eevolution.api.PPCostCollectorId;
 import org.eevolution.api.PPOrderRoutingActivity;
 import org.eevolution.api.PPOrderRoutingActivityId;
 import org.eevolution.api.ReceiptCostCollectorCandidate;
@@ -81,7 +82,7 @@ import lombok.Value;
 public class PPCostCollectorBL implements IPPCostCollectorBL
 {
 	@Override
-	public I_PP_Cost_Collector getById(final int costCollectorId)
+	public I_PP_Cost_Collector getById(final PPCostCollectorId costCollectorId)
 	{
 		return Services.get(IPPCostCollectorDAO.class).getById(costCollectorId);
 	}
@@ -96,7 +97,7 @@ public class PPCostCollectorBL implements IPPCostCollectorBL
 	public I_C_UOM getStockingUOM(final I_PP_Cost_Collector cc)
 	{
 		final ProductId productId = ProductId.ofRepoId(cc.getM_Product_ID());
-		return Services.get(IProductBL.class).getStockingUOM(productId);
+		return Services.get(IProductBL.class).getStockUOM(productId);
 	}
 
 	@Override
@@ -277,7 +278,7 @@ public class PPCostCollectorBL implements IPPCostCollectorBL
 	private Quantity getQtyReceived(final I_PP_Order ppOrder)
 	{
 		final ProductId productId = ProductId.ofRepoId(ppOrder.getM_Product_ID());
-		final I_C_UOM uom = Services.get(IProductBL.class).getStockingUOM(productId);
+		final I_C_UOM uom = Services.get(IProductBL.class).getStockUOM(productId);
 		return Quantity.of(ppOrder.getQtyDelivered(), uom);
 	}
 
@@ -553,9 +554,9 @@ public class PPCostCollectorBL implements IPPCostCollectorBL
 		cc.setS_Resource_ID(ResourceId.toRepoId(request.getResourceId()));
 		cc.setMovementDate(TimeUtil.asTimestamp(request.getMovementDate()));
 		cc.setDateAcct(TimeUtil.asTimestamp(request.getMovementDate()));
-		cc.setMovementQty(request.getQty().getAsBigDecimal());
-		cc.setScrappedQty(request.getQtyScrap().getAsBigDecimal());
-		cc.setQtyReject(request.getQtyReject().getAsBigDecimal());
+		cc.setMovementQty(request.getQty().toBigDecimal());
+		cc.setScrappedQty(request.getQtyScrap().toBigDecimal());
+		cc.setQtyReject(request.getQtyReject().toBigDecimal());
 		cc.setM_Product_ID(ProductId.toRepoId(request.getProductId()));
 
 		final PPOrderRoutingActivity orderActivity = request.getOrderActivity();

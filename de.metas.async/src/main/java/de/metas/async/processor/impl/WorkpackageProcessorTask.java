@@ -1,5 +1,7 @@
 package de.metas.async.processor.impl;
 
+
+
 /*
  * #%L
  * de.metas.async
@@ -30,7 +32,6 @@ import javax.annotation.Nullable;
 
 import org.adempiere.ad.dao.IQueryBuilder;
 import org.adempiere.ad.service.IDeveloperModeBL;
-import org.adempiere.ad.service.IErrorManager;
 import org.adempiere.ad.trx.api.ITrx;
 import org.adempiere.ad.trx.api.ITrxManager;
 import org.adempiere.ad.trx.api.ITrxRunConfig;
@@ -45,13 +46,12 @@ import org.adempiere.util.lang.IAutoCloseable;
 import org.adempiere.util.lang.IMutable;
 import org.adempiere.util.lang.Mutable;
 import org.adempiere.util.logging.LoggingHelper;
-import org.compiere.model.I_AD_Issue;
 import org.compiere.util.Env;
 import org.compiere.util.TrxRunnable;
-import org.compiere.util.Util;
 import org.slf4j.Logger;
 
 import ch.qos.logback.classic.Level;
+import de.metas.async.AsyncBatchId;
 import de.metas.async.Async_Constants;
 import de.metas.async.api.IAsyncBatchBL;
 import de.metas.async.api.IQueueDAO;
@@ -59,7 +59,6 @@ import de.metas.async.api.IWorkPackageBL;
 import de.metas.async.api.IWorkpackageParamDAO;
 import de.metas.async.api.IWorkpackageProcessorContextFactory;
 import de.metas.async.exceptions.WorkpackageSkipRequestException;
-import de.metas.async.model.I_C_Async_Batch;
 import de.metas.async.model.I_C_Queue_Block;
 import de.metas.async.model.I_C_Queue_PackageProcessor;
 import de.metas.async.model.I_C_Queue_WorkPackage;
@@ -68,6 +67,8 @@ import de.metas.async.processor.IWorkpackageSkipRequest;
 import de.metas.async.spi.IWorkpackageProcessor;
 import de.metas.async.spi.IWorkpackageProcessor.Result;
 import de.metas.async.spi.IWorkpackageProcessor2;
+import de.metas.error.AdIssueId;
+import de.metas.error.IErrorManager;
 import de.metas.lock.api.ILock;
 import de.metas.lock.api.ILockManager;
 import de.metas.lock.exceptions.LockFailedException;
@@ -82,6 +83,7 @@ import de.metas.util.Loggables;
 import de.metas.util.Services;
 import de.metas.util.StringUtils;
 import de.metas.util.exceptions.ServiceConnectionException;
+import de.metas.util.lang.CoalesceUtil;
 import de.metas.util.time.SystemTime;
 import lombok.NonNull;
 
@@ -161,16 +163,11 @@ import lombok.NonNull;
 				trxManager.run(
 						trxNamePrefix,
 						trxRunConfig,
-						new TrxRunnable()
-						{
-							@Override
-							public void run(final String trxName_IGNORED) throws Exception
-							{
-								// ignore the concrete trxName param,
-								// by default everything shall use the thread inherited trx
-								final Result result = processWorkpackage(ITrx.TRXNAME_ThreadInherited);
-								resultRef.setValue(result);
-							}
+						(TrxRunnable)trxName_IGNORED -> {
+							// ignore the concrete trxName param,
+							// by default everything shall use the thread inherited trx
+							final Result result = processWorkpackage(ITrx.TRXNAME_ThreadInherited);
+							resultRef.setValue(result);
 						});
 			}
 			//
@@ -220,9 +217,9 @@ import lombok.NonNull;
 				markError(workPackage, e);
 			}
 		}
-		catch (final Exception e)
+		catch (final Throwable ex)
 		{
-			final IWorkpackageSkipRequest skipRequest = getWorkpackageSkipRequest(e);
+			final IWorkpackageSkipRequest skipRequest = getWorkpackageSkipRequest(ex);
 			if (skipRequest != null)
 			{
 				finallyReleaseElementLockIfAny = false; // task 08999: don't release the lock yet, because we are going to retry later
@@ -230,7 +227,7 @@ import lombok.NonNull;
 			}
 			else
 			{
-				markError(workPackage, AdempiereException.wrapIfNeeded(e));
+				markError(workPackage, AdempiereException.wrapIfNeeded(ex));
 			}
 		}
 		finally
@@ -245,8 +242,7 @@ import lombok.NonNull;
 	private final void beforeWorkpackageProcessing()
 	{
 		// If the current workpackage's processor creates a follow-up-workpackage, the asyncBatch and priority will be forwarded.
-		final I_C_Async_Batch asyncBatch = workPackage.getC_Async_Batch();
-		contextFactory.setThreadInheritedAsyncBatch(asyncBatch);
+		contextFactory.setThreadInheritedAsyncBatch(AsyncBatchId.ofRepoIdOrNull(workPackage.getC_Async_Batch_ID()));
 
 		final String priority = workPackage.getPriority();
 		contextFactory.setThreadInheritedPriority(priority);
@@ -319,7 +315,7 @@ import lombok.NonNull;
 		final int retryAdvisedInMillis = e.getRetryAdvisedInMillis();
 		if (retryAdvisedInMillis > 0)
 		{
-			Loggables.get().addLog("Caught a {} with an advise to retry in {}ms; ServiceURL={}",
+			Loggables.addLog("Caught a {} with an advise to retry in {}ms; ServiceURL={}",
 					e.getClass().getSimpleName(), retryAdvisedInMillis, e.getServiceURL());
 
 			final WorkpackageSkipRequestException //
@@ -487,18 +483,18 @@ import lombok.NonNull;
 		else
 		{
 			final I_C_Queue_PackageProcessor packageProcessor = queueBlock.getC_Queue_PackageProcessor();
-			processorName = Util.coalesce(packageProcessor.getInternalName(), packageProcessor.getClassname());
+			processorName = CoalesceUtil.coalesce(packageProcessor.getInternalName(), packageProcessor.getClassname());
 		}
 		final String msg = StringUtils.formatMessage("Skipped while processing workpackage by processor {}; workpackage={}", processorName, workPackage);
 
 		// log error to console (for later audit):
 		logger.info(msg, skipException);
-		Loggables.get().addLog(msg);
+		Loggables.addLog(msg);
 	}
 
 	private void markError(final I_C_Queue_WorkPackage workPackage, final AdempiereException ex)
 	{
-		final I_AD_Issue issue = Services.get(IErrorManager.class).createIssue(ex);
+		final AdIssueId issueId = Services.get(IErrorManager.class).createIssue(ex);
 
 		//
 		// Allow retry processing this workpackage?
@@ -517,7 +513,7 @@ import lombok.NonNull;
 
 		workPackage.setIsError(true);
 		workPackage.setErrorMsg(ex.getLocalizedMessage());
-		workPackage.setAD_Issue(issue);
+		workPackage.setAD_Issue_ID(issueId.getRepoId());
 
 		setLastEndTime(workPackage); // update statistics
 
@@ -526,7 +522,7 @@ import lombok.NonNull;
 		// log error to console (for later audit):
 		final Level logLevel = Services.get(IDeveloperModeBL.class).isEnabled() ? Level.WARN : Level.INFO;
 		LoggingHelper.log(logger, logLevel, "Error while processing workpackage: {}", workPackage, ex);
-		Loggables.get().addLog("Error while processing workpackage: {0}", workPackage);
+		Loggables.addLog("Error while processing workpackage: {0}", workPackage);
 
 		notifyErrorAfterCommit(workPackage, ex);
 	}

@@ -2,7 +2,9 @@ package de.metas.util.lang;
 
 import java.lang.reflect.Method;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 import java.util.function.IntFunction;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -42,6 +44,11 @@ public class RepoIdAwares
 {
 	public static ImmutableList<Integer> asRepoIds(@NonNull final Collection<? extends RepoIdAware> ids)
 	{
+		if (ids.isEmpty())
+		{
+			return ImmutableList.of();
+		}
+
 		return ids
 				.stream()
 				.map(RepoIdAware::getRepoId)
@@ -50,6 +57,11 @@ public class RepoIdAwares
 
 	public static ImmutableSet<Integer> asRepoIdsSet(@NonNull final Collection<? extends RepoIdAware> ids)
 	{
+		if (ids.isEmpty())
+		{
+			return ImmutableSet.of();
+		}
+
 		return ids
 				.stream()
 				.map(RepoIdAware::getRepoId)
@@ -175,5 +187,10 @@ public class RepoIdAwares
 		IntFunction<RepoIdAware> ofRepoIdFunction;
 		@NonNull
 		IntFunction<RepoIdAware> ofRepoIdOrNullFunction;
+	}
+
+	public static <T, R extends RepoIdAware> Comparator<T> comparingNullsLast(@NonNull final Function<T, R> keyMapper)
+	{
+		return Comparator.comparing(keyMapper, Comparator.nullsLast(Comparator.naturalOrder()));
 	}
 }

@@ -30,14 +30,11 @@ import org.adempiere.ad.callout.annotations.Callout;
 import org.adempiere.ad.callout.annotations.CalloutMethod;
 import org.adempiere.ad.callout.api.ICalloutField;
 import org.adempiere.ad.trx.api.ITrx;
-import org.compiere.model.I_C_BPartner_Location;
 import org.compiere.model.I_C_Order;
 import org.compiere.model.I_C_UOM;
-import org.compiere.model.I_M_PriceList;
 import org.compiere.util.Env;
 
 import de.metas.bpartner.BPartnerLocationId;
-import de.metas.bpartner.service.IBPartnerDAO;
 import de.metas.contracts.model.I_C_Flatrate_Conditions;
 import de.metas.contracts.model.I_C_Flatrate_Matching;
 import de.metas.contracts.order.model.I_C_OrderLine;
@@ -138,11 +135,9 @@ public class C_OrderLine
 		}
 
 		final BPartnerLocationId bpLocationId = BPartnerLocationId.ofRepoId(ol.getC_BPartner_ID(), ol.getC_BPartner_Location_ID());
-		final I_C_BPartner_Location bpLocation = Services.get(IBPartnerDAO.class).getBPartnerLocationById(bpLocationId);
-
 		final Timestamp date = order.getDateOrdered();
 
-		final I_M_PriceList subscriptionPL = priceListDAO.retrievePriceListByPricingSyst(pricingSysytemId, bpLocation, soTrx);
+		final PriceListId subscriptionPLId = priceListDAO.retrievePriceListIdByPricingSyst(pricingSysytemId, bpLocationId, soTrx);
 
 		final int numberOfRuns = subscriptionBL.computeNumberOfRuns(flatrateConditions.getC_Flatrate_Transition(), date);
 
@@ -174,14 +169,14 @@ public class C_OrderLine
 
 		// qty ordered needs to be set because it will be used to compute the
 		// line's NetLineAmount in MOrderLine.beforeSave()
-		ol.setQtyOrdered(priceQty.getAsBigDecimal());
+		ol.setQtyOrdered(priceQty.toBigDecimal());
 
-		ol.setQtyEnteredInPriceUOM(priceQty.getAsBigDecimal());
+		ol.setQtyEnteredInPriceUOM(priceQty.toBigDecimal());
 
 		// now compute the new prices
 		orderLineBL.updatePrices(OrderLinePriceUpdateRequest.builder()
 				.orderLine(ol)
-				.priceListIdOverride(PriceListId.ofRepoId(subscriptionPL.getM_PriceList_ID()))
+				.priceListIdOverride(subscriptionPLId)
 				.qtyOverride(priceQty)
 				.resultUOM(ResultUOM.PRICE_UOM)
 				.updatePriceEnteredAndDiscountOnlyIfNotAlreadySet(true)

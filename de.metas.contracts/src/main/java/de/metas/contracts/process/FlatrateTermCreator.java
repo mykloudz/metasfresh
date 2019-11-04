@@ -6,6 +6,8 @@ import java.sql.Timestamp;
 import java.util.List;
 import java.util.Properties;
 
+import javax.annotation.Nullable;
+
 import org.adempiere.ad.trx.api.ITrxManager;
 import org.adempiere.exceptions.AdempiereException;
 import org.adempiere.model.PlainContextAware;
@@ -81,7 +83,7 @@ public class FlatrateTermCreator
 		for (final I_C_BPartner partner : bPartners)
 		{
 			// create each term in its own transaction
-			trxManager.run(new TrxRunnableAdapter()
+			trxManager.runInNewTrx(new TrxRunnableAdapter()
 			{
 				@Override
 				public void run(final String localTrxName)
@@ -92,17 +94,17 @@ public class FlatrateTermCreator
 				@Override
 				public boolean doCatch(Throwable ex)
 				{
-					Loggables.get().addLog("@Error@ @C_BPartner_ID@:" + partner.getValue() + "_" + partner.getName() + ": " + ex.getLocalizedMessage());
+					Loggables.addLog("@Error@ @C_BPartner_ID@:" + partner.getValue() + "_" + partner.getName() + ": " + ex.getLocalizedMessage());
 					logger.warn("Failed creating contract for {}", partner, ex);
 					throw AdempiereException
-						.wrapIfNeeded(ex)
-						.markUserNotified();
+							.wrapIfNeeded(ex)
+							.markUserNotified();
 				}
 
 				@Override
 				public void doFinally()
 				{
-					Loggables.get().addLog("@Processed@ @C_BPartner_ID@:" + partner.getValue() + "_" + partner.getName());
+					Loggables.addLog("@Processed@ @C_BPartner_ID@:" + partner.getValue() + "_" + partner.getName());
 				}
 			});
 		}
@@ -124,7 +126,7 @@ public class FlatrateTermCreator
 					conditions,
 					startDate,
 					userInCharge,
-					ProductAndCategoryId.of(product.getM_Product_ID(), product.getM_Product_Category_ID()),
+					createProductAndCategoryId(product),
 					false /* completeIt=false */
 			);
 
@@ -152,5 +154,14 @@ public class FlatrateTermCreator
 			result.add(newTerm);
 		}
 		return result.build();
+	}
+
+	public ProductAndCategoryId createProductAndCategoryId(@Nullable final I_M_Product productRecord)
+	{
+		if (productRecord == null)
+		{
+			return null;
+		}
+		return ProductAndCategoryId.of(productRecord.getM_Product_ID(), productRecord.getM_Product_Category_ID());
 	}
 }

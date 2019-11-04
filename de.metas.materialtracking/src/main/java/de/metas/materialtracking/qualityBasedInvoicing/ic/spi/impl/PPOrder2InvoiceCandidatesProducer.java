@@ -29,6 +29,7 @@ import java.util.List;
 
 import org.adempiere.model.InterfaceWrapperHelper;
 import org.adempiere.util.lang.IContextAware;
+import org.adempiere.util.lang.impl.TableRecordReference;
 import org.compiere.model.IClientOrgAware;
 import org.compiere.model.I_M_PriceList_Version;
 import org.compiere.util.Env;
@@ -131,7 +132,7 @@ import lombok.NonNull;
 		final IContextAware context = InterfaceWrapperHelper.getContextAware(ppOrder);
 		Check.assume(Env.getAD_Client_ID(context.getCtx()) == clientOrgAware.getAD_Client_ID(), "AD_Client_ID of PP_Order {} and of its Ctx are the same", ppOrder);
 
-		final ILoggable loggable = Loggables.get().withLogger(logger, Level.INFO);
+		final ILoggable loggable = Loggables.withLogger(logger, Level.INFO);
 
 		//
 		// Check if given manufacturing order is eligible. It might be not eligible anymore, because it was already processed earlier this run
@@ -180,7 +181,8 @@ import lombok.NonNull;
 		// and if there are already ICs for the downPayment-qiOrder, then do nothing
 		if (!qualityBasedInvoicingBL.isLastInspection(qiOrder))
 		{
-			final List<de.metas.invoicecandidate.model.I_C_Invoice_Candidate> downPaymentICs = invoiceCandDAO.retrieveReferencing(qiOrder.getPP_Order());
+			final List<de.metas.invoicecandidate.model.I_C_Invoice_Candidate> downPaymentICs = invoiceCandDAO
+					.retrieveReferencing(TableRecordReference.of(qiOrder.getPP_Order()));
 			if (!downPaymentICs.isEmpty())
 			{
 				final de.metas.invoicecandidate.model.I_C_Invoice_Candidate firstDownPaymentIC = downPaymentICs.get(0);

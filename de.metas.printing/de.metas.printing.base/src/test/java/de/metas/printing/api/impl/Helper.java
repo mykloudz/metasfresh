@@ -63,14 +63,13 @@ import org.junit.rules.TestName;
 import de.metas.adempiere.form.IClientUI;
 import de.metas.adempiere.service.IPrinterRoutingDAO;
 import de.metas.adempiere.service.impl.PlainPrinterRoutingDAO;
-import de.metas.document.archive.api.IDocOutboundDAO;
-import de.metas.document.archive.api.impl.PlainDocOutboundDAO;
 import de.metas.document.engine.IDocumentBL;
 import de.metas.document.engine.impl.PlainDocumentBL;
 import de.metas.i18n.Language;
 import de.metas.lock.api.ILockManager;
 import de.metas.lock.api.impl.PlainLockManager;
 import de.metas.lock.spi.impl.PlainLockDatabase;
+import de.metas.lock.spi.impl.PlainLockDatabase.LockKey;
 import de.metas.printing.api.IPrintJobBL;
 import de.metas.printing.api.IPrintingDAO;
 import de.metas.printing.api.IPrintingQueueBL;
@@ -152,9 +151,6 @@ public class Helper
 		}
 
 		AdempiereTestHelper.get().staticInit();
-
-		// de.metas.document.archive
-		Services.registerService(IDocOutboundDAO.class, new PlainDocOutboundDAO());
 
 		// de.metas.printing (this module):
 		Services.registerService(IPrintingDAO.class, printingDAO);
@@ -824,7 +820,7 @@ public class Helper
 	{
 		final PlainLockManager lockManager = (PlainLockManager)Services.get(ILockManager.class);
 		final PlainLockDatabase lockDatabase = lockManager.getLockDatabase();
-		final List<ArrayKey> locks = lockDatabase.getLocks();
+		final List<LockKey> locks = lockDatabase.getLocks();
 		Assert.assertEquals("No locks expecteded", new ArrayList<ArrayKey>(), locks);
 	}
 }

@@ -8,6 +8,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Properties;
 
+import javax.annotation.Nullable;
+
 import org.adempiere.archive.api.IArchiveEventManager;
 import org.adempiere.archive.spi.IArchiveEventListener;
 import org.adempiere.model.InterfaceWrapperHelper;
@@ -55,7 +57,7 @@ public class DocOutboundArchiveEventListener implements IArchiveEventListener
 	}
 
 	@Override
-	public void onPdfUpdate(@NonNull final I_AD_Archive archive, final I_AD_User user, final String action)
+	public void onPdfUpdate(@Nullable final I_AD_Archive archive, @Nullable final I_AD_User user, final String action)
 	{
 		if (!isLoggableArchive(archive))
 		{
@@ -64,8 +66,10 @@ public class DocOutboundArchiveEventListener implements IArchiveEventListener
 
 		final I_C_Doc_Outbound_Log_Line docExchangeLine = createLogLine(archive);
 		docExchangeLine.setAction(action);
-		docExchangeLine.setAD_User(user);
-
+		if (user != null)
+		{
+			docExchangeLine.setAD_User_ID(user.getAD_User_ID());
+		}
 		save(docExchangeLine);
 	}
 
@@ -73,7 +77,7 @@ public class DocOutboundArchiveEventListener implements IArchiveEventListener
 	public void onEmailSent(
 			@NonNull final I_AD_Archive archive,
 			final String action,
-			final UserEMailConfig user,
+			@Nullable final UserEMailConfig userMailConfig,
 			final EMailAddress from,
 			final EMailAddress to,
 			final EMailAddress cc,
@@ -92,8 +96,10 @@ public class DocOutboundArchiveEventListener implements IArchiveEventListener
 		docExchangeLine.setEMail_Cc(EMailAddress.toStringOrNull(cc));
 		docExchangeLine.setEMail_Bcc(EMailAddress.toStringOrNull(bcc));
 		docExchangeLine.setStatus(status);
-		docExchangeLine.setAD_User_ID(UserId.toRepoId(user.getUserId()));
-
+		if (userMailConfig != null)
+		{
+			docExchangeLine.setAD_User_ID(UserId.toRepoId(userMailConfig.getUserId()));
+		}
 		save(docExchangeLine);
 
 		final I_C_Doc_Outbound_Log log = docExchangeLine.getC_Doc_Outbound_Log();
@@ -102,7 +108,11 @@ public class DocOutboundArchiveEventListener implements IArchiveEventListener
 	}
 
 	@Override
-	public void onPrintOut(final I_AD_Archive archive, final I_AD_User user, final String printerName, final int copies, final String status)
+	public void onPrintOut(final I_AD_Archive archive,
+			@Nullable final I_AD_User user,
+			final String printerName,
+			final int copies,
+			final String status)
 	{
 		// task 05334: only assume existing archive if the status is "success"
 		if (IArchiveEventManager.STATUS_Success.equals(status))
@@ -117,8 +127,12 @@ public class DocOutboundArchiveEventListener implements IArchiveEventListener
 		final I_C_Doc_Outbound_Log_Line docExchangeLine = createLogLine(archive);
 
 		docExchangeLine.setAction(X_C_Doc_Outbound_Log_Line.ACTION_Print);
+
 		// create stuff
-		docExchangeLine.setAD_User(user);
+		if (user != null)
+		{
+			docExchangeLine.setAD_User_ID(user.getAD_User_ID());
+		}
 		docExchangeLine.setStatus(status);
 
 		save(docExchangeLine);
@@ -126,11 +140,8 @@ public class DocOutboundArchiveEventListener implements IArchiveEventListener
 
 	/**
 	 * We don't generate logs for archives without table IDs
-	 *
-	 * @param archive
-	 * @return
 	 */
-	private boolean isLoggableArchive(final I_AD_Archive archive)
+	private boolean isLoggableArchive(@Nullable final I_AD_Archive archive)
 	{
 		// task 05334: be robust against archive==null
 		if (archive == null || archive.getAD_Table_ID() <= 0)
@@ -183,7 +194,7 @@ public class DocOutboundArchiveEventListener implements IArchiveEventListener
 	 * @param archiveRecord
 	 * @return {@link I_C_Doc_Outbound_Log}
 	 */
-	private I_C_Doc_Outbound_Log createLog(final I_AD_Archive archiveRecord)
+	private I_C_Doc_Outbound_Log createLog(@NonNull final I_AD_Archive archiveRecord)
 	{
 		// Services
 		final IDocumentBL docActionBL = Services.get(IDocumentBL.class);
@@ -230,10 +241,6 @@ public class DocOutboundArchiveEventListener implements IArchiveEventListener
 		final DocOutboundLogMailRecipientRegistry docOutboundLogMailRecipientRegistry = Adempiere.getBean(DocOutboundLogMailRecipientRegistry.class);
 
 		final Optional<DocOutBoundRecipient> mailRecipient = docOutboundLogMailRecipientRegistry.invokeProvider(docOutboundLogRecord);
-		if (!mailRecipient.isPresent())
-		{
-			return;
-		}
 
 		mailRecipient.ifPresent(recipient -> updateRecordWithRecipient(docOutboundLogRecord, recipient));
 	}

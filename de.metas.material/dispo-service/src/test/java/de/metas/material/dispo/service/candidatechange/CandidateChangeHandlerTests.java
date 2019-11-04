@@ -3,7 +3,7 @@ package de.metas.material.dispo.service.candidatechange;
 import static de.metas.material.event.EventTestHelper.AFTER_NOW;
 import static de.metas.material.event.EventTestHelper.BEFORE_BEFORE_NOW;
 import static de.metas.material.event.EventTestHelper.BEFORE_NOW;
-import static de.metas.material.event.EventTestHelper.CLIENT_ID;
+import static de.metas.material.event.EventTestHelper.CLIENT_AND_ORG_ID;
 import static de.metas.material.event.EventTestHelper.NOW;
 import static de.metas.material.event.EventTestHelper.ORG_ID;
 import static de.metas.material.event.EventTestHelper.PRODUCT_ID;
@@ -15,6 +15,7 @@ import static java.math.BigDecimal.TEN;
 import static org.adempiere.model.InterfaceWrapperHelper.newInstance;
 import static org.adempiere.model.InterfaceWrapperHelper.save;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.compiere.util.TimeUtil.asTimestamp;
 
 import java.math.BigDecimal;
@@ -26,10 +27,11 @@ import java.util.Map;
 
 import org.adempiere.test.AdempiereTestHelper;
 import org.adempiere.test.AdempiereTestWatcher;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TestWatcher;
+import org.adempiere.warehouse.WarehouseId;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mockito;
 
 import com.google.common.collect.ImmutableList;
 
@@ -58,7 +60,6 @@ import de.metas.material.dispo.service.candidatechange.handler.SupplyCandidateHa
 import de.metas.material.event.PostMaterialEventService;
 import de.metas.material.event.commons.MaterialDescriptor;
 import lombok.NonNull;
-import mockit.Mocked;
 
 /*
  * #%L
@@ -82,6 +83,7 @@ import mockit.Mocked;
  * #L%
  */
 
+@ExtendWith(AdempiereTestWatcher.class)
 public class CandidateChangeHandlerTests
 {
 	private static final BigDecimal FIFTEEN = new BigDecimal("15");
@@ -94,31 +96,20 @@ public class CandidateChangeHandlerTests
 
 	private static final BigDecimal THREE = new BigDecimal("3");
 
-	/** Watches the current tests and dumps the database to console in case of failure */
-	@Rule
-	public final TestWatcher testWatcher = new AdempiereTestWatcher();
-
 	private final Instant t1 = Instant.parse("2017-11-22T00:00:00Z");
 	private final Instant t2 = t1.plus(10, ChronoUnit.MINUTES);
 	private final Instant t3 = t1.plus(20, ChronoUnit.MINUTES);
 	private final Instant t4 = t1.plus(30, ChronoUnit.MINUTES);
 
-	private final int OTHER_WAREHOUSE_ID = WAREHOUSE_ID + 10;
+	private final WarehouseId OTHER_WAREHOUSE_ID = WarehouseId.ofRepoId(WAREHOUSE_ID.getRepoId() + 10);
 
 	private CandidateRepositoryRetrieval candidateRepositoryRetrieval;
-
 	private AvailableToPromiseRepository stockRepository;
-
 	private CandidateChangeService candidateChangeHandler;
-
-	@Mocked
-	private PostMaterialEventService postMaterialEventService;
-
 	private StockCandidateService stockCandidateService;
-
 	private CandidateRepositoryWriteService candidateRepositoryCommands;
 
-	@Before
+	@BeforeEach
 	public void init()
 	{
 		AdempiereTestHelper.get().init();
@@ -126,7 +117,9 @@ public class CandidateChangeHandlerTests
 		candidateRepositoryRetrieval = new CandidateRepositoryRetrieval();
 		candidateRepositoryCommands = new CandidateRepositoryWriteService();
 
-		stockRepository = new AvailableToPromiseRepository();
+		final PostMaterialEventService postMaterialEventService = Mockito.mock(PostMaterialEventService.class);
+
+		stockRepository = Mockito.spy(AvailableToPromiseRepository.class);
 		stockCandidateService = new StockCandidateService(
 				candidateRepositoryRetrieval,
 				candidateRepositoryCommands);
@@ -151,13 +144,14 @@ public class CandidateChangeHandlerTests
 		assertThat(result.get(CandidateType.UNRELATED_DECREASE)).isSameAs(handler2);
 	}
 
-	@Test(expected = RuntimeException.class)
+	@Test
 	public void createMapOfHandlers_when_typeColission_then_exception()
 	{
 		final CandidateHandler handler1 = createHandlerThatSupportsTypes(ImmutableList.of(CandidateType.DEMAND, CandidateType.SUPPLY));
 		final CandidateHandler handler2 = createHandlerThatSupportsTypes(ImmutableList.of(CandidateType.DEMAND, CandidateType.UNRELATED_DECREASE));
 
-		CandidateChangeService.createMapOfHandlers(ImmutableList.of(handler1, handler2));
+		assertThatThrownBy(() -> CandidateChangeService.createMapOfHandlers(ImmutableList.of(handler1, handler2)))
+				.isInstanceOf(RuntimeException.class);
 	}
 
 	private CandidateHandler createHandlerThatSupportsTypes(final ImmutableList<CandidateType> types)
@@ -205,8 +199,7 @@ public class CandidateChangeHandlerTests
 			earlierCandidate = candidateRepositoryCommands
 					.addOrUpdateOverwriteStoredSeqNo(Candidate.builder()
 							.type(CandidateType.STOCK)
-							.clientId(CLIENT_ID)
-							.orgId(ORG_ID)
+							.clientAndOrgId(CLIENT_AND_ORG_ID)
 							.materialDescriptor(earlierMaterialDescriptor)
 							.build())
 					.getCandidate();
@@ -215,8 +208,7 @@ public class CandidateChangeHandlerTests
 
 			final Candidate laterCandidate = Candidate.builder()
 					.type(CandidateType.STOCK)
-					.clientId(CLIENT_ID)
-					.orgId(ORG_ID)
+					.clientAndOrgId(CLIENT_AND_ORG_ID)
 					.materialDescriptor(laterMaterialDescriptor)
 					.build();
 			candidateRepositoryCommands.addOrUpdateOverwriteStoredSeqNo(laterCandidate);
@@ -227,8 +219,7 @@ public class CandidateChangeHandlerTests
 
 			evenLaterCandidate = Candidate.builder()
 					.type(CandidateType.STOCK)
-					.clientId(CLIENT_ID)
-					.orgId(ORG_ID)
+					.clientAndOrgId(CLIENT_AND_ORG_ID)
 					.materialDescriptor(evenLatermaterialDescriptor)
 					.build();
 			candidateRepositoryCommands.addOrUpdateOverwriteStoredSeqNo(evenLaterCandidate);
@@ -238,8 +229,7 @@ public class CandidateChangeHandlerTests
 
 			evenLaterCandidateWithDifferentWarehouse = Candidate.builder()
 					.type(CandidateType.STOCK)
-					.clientId(CLIENT_ID)
-					.orgId(ORG_ID)
+					.clientAndOrgId(CLIENT_AND_ORG_ID)
 					.materialDescriptor(evenLatermaterialDescrWithDifferentWarehouse)
 					.build();
 			candidateRepositoryCommands.addOrUpdateOverwriteStoredSeqNo(evenLaterCandidateWithDifferentWarehouse);
@@ -254,8 +244,7 @@ public class CandidateChangeHandlerTests
 				.build();
 		final Candidate candidateWithDelta = Candidate.builder()
 				.type(CandidateType.STOCK)
-				.clientId(CLIENT_ID)
-				.orgId(ORG_ID)
+				.clientAndOrgId(CLIENT_AND_ORG_ID)
 				.materialDescriptor(materialDescriptor)
 				.groupId(earlierCandidate.getGroupId()).build();
 		stockCandidateService.applyDeltaToMatchingLaterStockCandidates(SaveResult.builder().candidate(candidateWithDelta).build());
@@ -281,7 +270,7 @@ public class CandidateChangeHandlerTests
 		{
 			final I_MD_Candidate evenLaterCandidateRecordAfterChange = DispoTestUtils.filter(CandidateType.STOCK, t4, PRODUCT_ID, WAREHOUSE_ID).get(0); // candidateRepository.retrieveExact(evenLaterCandidate).get();
 			assertThat(evenLaterCandidateRecordAfterChange.getQty()).isEqualByComparingTo("15"); // quantity shall be plus 3 too
-			assertThat(evenLaterCandidateRecordAfterChange.getMD_Candidate_GroupId()).isEqualTo(earlierCandidate.getGroupId());
+			assertThat(evenLaterCandidateRecordAfterChange.getMD_Candidate_GroupId()).isEqualTo(earlierCandidate.getGroupId().toInt());
 		}
 		{
 			final I_MD_Candidate evenLaterCandidateWithDifferentWarehouseAfterChange = DispoTestUtils.filter(CandidateType.STOCK, t4, PRODUCT_ID, OTHER_WAREHOUSE_ID).get(0); // candidateRepository.retrieveExact(evenLaterCandidateWithDifferentWarehouse).get();
@@ -301,9 +290,9 @@ public class CandidateChangeHandlerTests
 				.build();
 
 		final I_MD_Candidate stockRecord = newInstance(I_MD_Candidate.class);
-		stockRecord.setAD_Org_ID(ORG_ID);
+		stockRecord.setAD_Org_ID(ORG_ID.getRepoId());
 		stockRecord.setMD_Candidate_Type(CandidateType.STOCK.toString());
-		stockRecord.setM_Warehouse_ID(materialDescriptor.getWarehouseId());
+		stockRecord.setM_Warehouse_ID(materialDescriptor.getWarehouseId().getRepoId());
 		stockRecord.setQty(materialDescriptor.getQuantity());
 		stockRecord.setDateProjected(asTimestamp(dateProjected));
 		stockRecord.setM_Product_ID(materialDescriptor.getProductId());
@@ -319,7 +308,7 @@ public class CandidateChangeHandlerTests
 
 	private CandidatesQuery mkQueryForStockUntilDate(
 			@NonNull final Instant date,
-			final int warehouseId)
+			final WarehouseId warehouseId)
 	{
 		final MaterialDescriptorQuery materialDescriptorQuery = MaterialDescriptorQuery.builder()
 				.productId(PRODUCT_ID)
@@ -688,8 +677,7 @@ public class CandidateChangeHandlerTests
 
 		final Candidate candidate = Candidate.builder()
 				.type(CandidateType.DEMAND)
-				.clientId(CLIENT_ID)
-				.orgId(ORG_ID)
+				.clientAndOrgId(CLIENT_AND_ORG_ID)
 				.materialDescriptor(materialDescr)
 
 				.businessCase(CandidateBusinessCase.SHIPMENT)
@@ -731,8 +719,7 @@ public class CandidateChangeHandlerTests
 
 		final Candidate supplyCandidate = Candidate.builder()
 				.type(CandidateType.SUPPLY)
-				.clientId(CLIENT_ID)
-				.orgId(ORG_ID)
+				.clientAndOrgId(CLIENT_AND_ORG_ID)
 				.materialDescriptor(supplyMaterialDescriptor)
 
 				.businessCase(CandidateBusinessCase.PURCHASE)

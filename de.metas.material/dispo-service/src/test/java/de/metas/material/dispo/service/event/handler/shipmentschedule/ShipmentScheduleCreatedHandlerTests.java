@@ -1,9 +1,8 @@
 package de.metas.material.dispo.service.event.handler.shipmentschedule;
 
 import static de.metas.material.event.EventTestHelper.BPARTNER_ID;
-import static de.metas.material.event.EventTestHelper.CLIENT_ID;
+import static de.metas.material.event.EventTestHelper.CLIENT_AND_ORG_ID;
 import static de.metas.material.event.EventTestHelper.NOW;
-import static de.metas.material.event.EventTestHelper.ORG_ID;
 import static de.metas.material.event.EventTestHelper.createProductDescriptor;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -13,10 +12,11 @@ import java.util.List;
 import org.adempiere.ad.wrapper.POJOLookupMap;
 import org.adempiere.test.AdempiereTestHelper;
 import org.adempiere.test.AdempiereTestWatcher;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TestWatcher;
+import org.adempiere.warehouse.WarehouseId;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mockito;
 
 import com.google.common.collect.ImmutableList;
 
@@ -37,7 +37,6 @@ import de.metas.material.event.commons.MaterialDescriptor;
 import de.metas.material.event.commons.OrderLineDescriptor;
 import de.metas.material.event.shipmentschedule.ShipmentScheduleCreatedEvent;
 import lombok.NonNull;
-import mockit.Mocked;
 
 /*
  * #%L
@@ -61,26 +60,19 @@ import mockit.Mocked;
  * #L%
  */
 
+@ExtendWith(AdempiereTestWatcher.class)
 public class ShipmentScheduleCreatedHandlerTests
 {
 	private static final int shipmentScheduleId = 76;
 
 	private static final int orderLineId = 86;
 
-	/** Watches the current tests and dumps the database to console in case of failure */
-	@Rule
-	public final TestWatcher testWatcher = new AdempiereTestWatcher();
-
-	private static final int toWarehouseId = 30;
-
-	@Mocked
-	private PostMaterialEventService postMaterialEventService;
+	private static final WarehouseId toWarehouseId = WarehouseId.ofRepoId(30);
 
 	private ShipmentScheduleCreatedHandler shipmentScheduleCreatedHandler;
-
 	private AvailableToPromiseRepository atpRepository;
 
-	@Before
+	@BeforeEach
 	public void init()
 	{
 		AdempiereTestHelper.get().init();
@@ -89,7 +81,9 @@ public class ShipmentScheduleCreatedHandlerTests
 
 		final CandidateRepositoryWriteService candidateRepositoryCommands = new CandidateRepositoryWriteService();
 
-		atpRepository = new AvailableToPromiseRepository();
+		final PostMaterialEventService postMaterialEventService = Mockito.mock(PostMaterialEventService.class);
+
+		atpRepository = Mockito.spy(AvailableToPromiseRepository.class);
 
 		final CandidateChangeService candidateChangeHandler = new CandidateChangeService(ImmutableList.of(
 				new DemandCandiateHandler(
@@ -152,7 +146,7 @@ public class ShipmentScheduleCreatedHandlerTests
 	public static ShipmentScheduleCreatedEvent createShipmentScheduleTestEvent()
 	{
 		final ShipmentScheduleCreatedEvent event = ShipmentScheduleCreatedEvent.builder()
-				.eventDescriptor(EventDescriptor.ofClientAndOrg(CLIENT_ID, ORG_ID))
+				.eventDescriptor(EventDescriptor.ofClientAndOrg(CLIENT_AND_ORG_ID))
 				.materialDescriptor(MaterialDescriptor.builder()
 						.date(NOW)
 						.productDescriptor(createProductDescriptor())

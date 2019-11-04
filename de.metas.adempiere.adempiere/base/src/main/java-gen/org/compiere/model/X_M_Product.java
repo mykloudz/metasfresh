@@ -15,7 +15,7 @@ public class X_M_Product extends org.compiere.model.PO implements I_M_Product, o
 	/**
 	 *
 	 */
-	private static final long serialVersionUID = 130892207L;
+	private static final long serialVersionUID = 651513871L;
 
     /** Standard Constructor */
     public X_M_Product (Properties ctx, int M_Product_ID, String trxName)
@@ -290,6 +290,22 @@ public class X_M_Product extends org.compiere.model.PO implements I_M_Product, o
 		return (java.lang.String)get_Value(COLUMNNAME_DocumentNote);
 	}
 
+	/** Set External ID.
+		@param ExternalId External ID	  */
+	@Override
+	public void setExternalId (java.lang.String ExternalId)
+	{
+		set_Value (COLUMNNAME_ExternalId, ExternalId);
+	}
+
+	/** Get External ID.
+		@return External ID	  */
+	@Override
+	public java.lang.String getExternalId () 
+	{
+		return (java.lang.String)get_Value(COLUMNNAME_ExternalId);
+	}
+
 	/** Set Group1.
 		@param Group1 Group1	  */
 	@Override
@@ -372,6 +388,22 @@ public class X_M_Product extends org.compiere.model.PO implements I_M_Product, o
 	public java.lang.String getGroupCompensationType () 
 	{
 		return (java.lang.String)get_Value(COLUMNNAME_GroupCompensationType);
+	}
+
+	/** Set GTIN.
+		@param GTIN GTIN	  */
+	@Override
+	public void setGTIN (java.lang.String GTIN)
+	{
+		set_Value (COLUMNNAME_GTIN, GTIN);
+	}
+
+	/** Get GTIN.
+		@return GTIN	  */
+	@Override
+	public java.lang.String getGTIN () 
+	{
+		return (java.lang.String)get_Value(COLUMNNAME_GTIN);
 	}
 
 	/** Set Min. Garantie-Tage.
@@ -898,6 +930,40 @@ public class X_M_Product extends org.compiere.model.PO implements I_M_Product, o
 	}
 
 	@Override
+	public org.compiere.model.I_M_CustomsTariff getM_CustomsTariff()
+	{
+		return get_ValueAsPO(COLUMNNAME_M_CustomsTariff_ID, org.compiere.model.I_M_CustomsTariff.class);
+	}
+
+	@Override
+	public void setM_CustomsTariff(org.compiere.model.I_M_CustomsTariff M_CustomsTariff)
+	{
+		set_ValueFromPO(COLUMNNAME_M_CustomsTariff_ID, org.compiere.model.I_M_CustomsTariff.class, M_CustomsTariff);
+	}
+
+	/** Set Customs Tariff.
+		@param M_CustomsTariff_ID Customs Tariff	  */
+	@Override
+	public void setM_CustomsTariff_ID (int M_CustomsTariff_ID)
+	{
+		if (M_CustomsTariff_ID < 1) 
+			set_Value (COLUMNNAME_M_CustomsTariff_ID, null);
+		else 
+			set_Value (COLUMNNAME_M_CustomsTariff_ID, Integer.valueOf(M_CustomsTariff_ID));
+	}
+
+	/** Get Customs Tariff.
+		@return Customs Tariff	  */
+	@Override
+	public int getM_CustomsTariff_ID () 
+	{
+		Integer ii = (Integer)get_Value(COLUMNNAME_M_CustomsTariff_ID);
+		if (ii == null)
+			 return 0;
+		return ii.intValue();
+	}
+
+	@Override
 	public org.compiere.model.I_M_FreightCategory getM_FreightCategory()
 	{
 		return get_ValueAsPO(COLUMNNAME_M_FreightCategory_ID, org.compiere.model.I_M_FreightCategory.class);
@@ -957,18 +1023,6 @@ public class X_M_Product extends org.compiere.model.PO implements I_M_Product, o
 		if (ii == null)
 			 return 0;
 		return ii.intValue();
-	}
-
-	@Override
-	public org.compiere.model.I_M_Product_Category getM_Product_Category()
-	{
-		return get_ValueAsPO(COLUMNNAME_M_Product_Category_ID, org.compiere.model.I_M_Product_Category.class);
-	}
-
-	@Override
-	public void setM_Product_Category(org.compiere.model.I_M_Product_Category M_Product_Category)
-	{
-		set_ValueFromPO(COLUMNNAME_M_Product_Category_ID, org.compiere.model.I_M_Product_Category.class, M_Product_Category);
 	}
 
 	/** Set Produkt Kategorie.
@@ -1323,8 +1377,8 @@ public class X_M_Product extends org.compiere.model.PO implements I_M_Product, o
 		return ii.intValue();
 	}
 
-	/** Set Aussendienst.
-		@param SalesRep_ID Aussendienst	  */
+	/** Set Kundenbetreuer.
+		@param SalesRep_ID Kundenbetreuer	  */
 	@Override
 	public void setSalesRep_ID (int SalesRep_ID)
 	{
@@ -1334,8 +1388,8 @@ public class X_M_Product extends org.compiere.model.PO implements I_M_Product, o
 			set_Value (COLUMNNAME_SalesRep_ID, Integer.valueOf(SalesRep_ID));
 	}
 
-	/** Get Aussendienst.
-		@return Aussendienst	  */
+	/** Get Kundenbetreuer.
+		@return Kundenbetreuer	  */
 	@Override
 	public int getSalesRep_ID () 
 	{
@@ -1474,9 +1528,9 @@ public class X_M_Product extends org.compiere.model.PO implements I_M_Product, o
 		return bd;
 	}
 
-	/** Set UPC/EAN.
+	/** Set UPC.
 		@param UPC 
-		Bar Code (Universal Product Code or its superset European Article Number)
+		Produktidentifikation (Barcode) durch Universal Product Code oder European Article Number)
 	  */
 	@Override
 	public void setUPC (java.lang.String UPC)
@@ -1484,8 +1538,8 @@ public class X_M_Product extends org.compiere.model.PO implements I_M_Product, o
 		set_Value (COLUMNNAME_UPC, UPC);
 	}
 
-	/** Get UPC/EAN.
-		@return Bar Code (Universal Product Code or its superset European Article Number)
+	/** Get UPC.
+		@return Produktidentifikation (Barcode) durch Universal Product Code oder European Article Number)
 	  */
 	@Override
 	public java.lang.String getUPC () 

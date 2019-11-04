@@ -31,6 +31,7 @@ import java.util.Properties;
 import org.adempiere.ad.dao.IQueryFilter;
 import org.adempiere.ad.dao.IQueryFilterModifier;
 import org.adempiere.ad.dao.ISqlQueryFilter;
+import org.compiere.Adempiere;
 import org.compiere.model.MQuery;
 import org.compiere.util.TimeUtil;
 
@@ -38,9 +39,11 @@ import de.metas.util.Check;
 import de.metas.util.lang.CoalesceUtil;
 import de.metas.util.lang.ReferenceListAwareEnum;
 import de.metas.util.lang.RepoIdAware;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NonNull;
 
+@EqualsAndHashCode(doNotUseGetters = true, exclude = { "sqlBuilt", "sqlWhereClause", "sqlParams" })
 public class CompareQueryFilter<T> implements IQueryFilter<T>, ISqlQueryFilter
 {
 	/**
@@ -235,6 +238,15 @@ public class CompareQueryFilter<T> implements IQueryFilter<T>, ISqlQueryFilter
 		}
 		else if (value1 == null)
 		{
+			// corner case: model's value was not set so it's null and value2 is false.
+			// => consider the equals
+			if (Adempiere.isUnitTestMode()
+					&& value2 instanceof Boolean
+					&& Boolean.FALSE.equals(value2))
+			{
+				return 0;
+			}
+
 			return +1;
 		}
 		else if (value2 == null)

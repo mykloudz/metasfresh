@@ -32,6 +32,7 @@ import javax.annotation.Nullable;
 
 import org.adempiere.ad.trx.api.ITrx;
 import org.adempiere.ad.trx.api.ITrxManager;
+import org.adempiere.exceptions.AdempiereException;
 import org.adempiere.model.InterfaceWrapperHelper;
 import org.adempiere.service.ISysConfigBL;
 import org.compiere.model.I_AD_User;
@@ -47,18 +48,18 @@ import com.google.common.base.Strings;
 
 import de.metas.bpartner.BPartnerId;
 import de.metas.bpartner.BPartnerLocationId;
+import de.metas.bpartner.ShipmentAllocationBestBeforePolicy;
 import de.metas.bpartner.service.IBPGroupDAO;
 import de.metas.bpartner.service.IBPartnerAware;
 import de.metas.bpartner.service.IBPartnerBL;
+import de.metas.bpartner.service.IBPartnerBL.RetrieveContactRequest.ContactType;
 import de.metas.bpartner.service.IBPartnerDAO;
 import de.metas.i18n.Language;
 import de.metas.lang.SOTrx;
 import de.metas.location.CountryId;
 import de.metas.location.ILocationBL;
 import de.metas.location.impl.AddressBuilder;
-import de.metas.order.DeliveryViaRule;
 import de.metas.organization.OrgId;
-import de.metas.shipping.ShipperId;
 import de.metas.user.User;
 import de.metas.user.UserId;
 import de.metas.user.UserRepository;
@@ -77,7 +78,7 @@ public class BPartnerBL implements IBPartnerBL
 	{
 		this.userRepository = userRepository;
 	}
-	
+
 	public I_C_BPartner getById(@NonNull final BPartnerId bpartnerId)
 	{
 		return Services.get(IBPartnerDAO.class).getById(bpartnerId);
@@ -162,19 +163,8 @@ public class BPartnerBL implements IBPartnerBL
 	}
 
 	@Override
-	public I_AD_User retrieveBillContact(final Properties ctx, final int bPartnerId, final String trxName)
+	public User retrieveContactOrNull(@NonNull final RetrieveContactRequest request)
 	{
-		final IBPartnerDAO bPartnerDAO = Services.get(IBPartnerDAO.class);
-		final org.compiere.model.I_C_BPartner_Location loc = bPartnerDAO.retrieveBillToLocation(ctx, bPartnerId, false, trxName);
-
-		final int bPartnerLocationId = loc == null ? -1 : loc.getC_BPartner_Location_ID();
-		return retrieveUserForLoc(ctx, bPartnerId, bPartnerLocationId, trxName);
-	}
-
-	@Override
-	public User retrieveBillContactOrNull(@NonNull final RetrieveBillContactRequest request)
-	{
-
 		final IBPartnerDAO bPartnerDAO = Services.get(IBPartnerDAO.class);
 
 		final List<I_AD_User> contactRecords = bPartnerDAO.retrieveContacts(
@@ -185,7 +175,7 @@ public class BPartnerBL implements IBPartnerBL
 		// we will collect the candidates for our return value into these variables
 		final Set<User> contactsAtLocation = new TreeSet<>(request.getComparator());
 		final Set<User> contactsAtOtherLocations = new TreeSet<>(request.getComparator());
-		User defaultBillContact = null;
+		User defaultContactOfType = null;
 		User defaultContact = null;
 
 		for (final I_AD_User contactRecord : contactRecords)
@@ -211,33 +201,54 @@ public class BPartnerBL implements IBPartnerBL
 			{
 				defaultContact = contact;
 			}
-			if (contactRecord.isBillToContact_Default())
+			if (recordMatchesType(contactRecord, request.getContactType()))
 			{
-				defaultBillContact = contact;
+				defaultContactOfType = contact;
 			}
 		}
 
 		if (!contactsAtLocation.isEmpty())
 		{
-			return findBestMatch(contactsAtLocation, defaultBillContact, defaultContact);
+			return findBestMatch(contactsAtLocation, defaultContactOfType, defaultContact);
 		}
 		else if (!contactsAtOtherLocations.isEmpty())
 		{
-			return findBestMatch(contactsAtOtherLocations, defaultBillContact, defaultContact);
+			return findBestMatch(contactsAtOtherLocations, defaultContactOfType, defaultContact);
 		}
 		return null;
 	}
 
+	private boolean recordMatchesType(@NonNull final I_AD_User contactRecord, @Nullable final ContactType contactType)
+	{
+		if (contactType == null)
+		{
+			return true;
+		}
+		switch (contactType)
+		{
+			case BILL_TO_DEFAULT:
+				return contactRecord.isBillToContact_Default();
+			case SALES_DEFAULT:
+				return contactRecord.isSalesContact_Default();
+			case SHIP_TO_DEFAULT:
+				return contactRecord.isShipToContact_Default();
+			case SUBJECT_MATTER:
+				return contactRecord.isSubjectMatterContact();
+			default:
+				throw new AdempiereException("Unsupporded contactType=" + contactType);
+		}
+	}
+
 	private User findBestMatch(
 			@NonNull final Set<User> contacts,
-			@Nullable final User defaultBillContact,
+			@Nullable final User defaultContactOfType,
 			@Nullable final User defaultContact)
 	{
 		Check.assumeNotEmpty(contacts, "Parameter contacts needs to be non-empty");
 
-		if (defaultBillContact != null && contacts.contains(defaultBillContact))
+		if (defaultContactOfType != null && contacts.contains(defaultContactOfType))
 		{
-			return defaultBillContact;
+			return defaultContactOfType;
 		}
 		else if (defaultContact != null && contacts.contains(defaultContact))
 		{
@@ -335,10 +346,10 @@ public class BPartnerBL implements IBPartnerBL
 	}
 
 	@Override
-	public boolean isAllowConsolidateInOutEffective(final org.compiere.model.I_C_BPartner partner, final boolean isSOTrx)
+	public boolean isAllowConsolidateInOutEffective(
+			@NonNull final org.compiere.model.I_C_BPartner partner,
+			@NonNull final SOTrx soTrx)
 	{
-		Check.assumeNotNull(partner, "partner not null");
-
 		final I_C_BPartner partnerToUse = InterfaceWrapperHelper.create(partner, de.metas.interfaces.I_C_BPartner.class);
 		final boolean partnerAllowConsolidateInOut = partnerToUse.isAllowConsolidateInOut();
 		if (partnerAllowConsolidateInOut)
@@ -348,7 +359,7 @@ public class BPartnerBL implements IBPartnerBL
 
 		//
 		// 07973: Attempt to override SO shipment consolidation if configured
-		if (isSOTrx)
+		if (soTrx.isSales())
 		{
 			final boolean allowConsolidateInOutOverrideDefault = false; // default=false (preserve existing logic)
 			final boolean allowConsolidateInOutOverride = Services.get(ISysConfigBL.class).getBooleanValue(
@@ -356,7 +367,10 @@ public class BPartnerBL implements IBPartnerBL
 					allowConsolidateInOutOverrideDefault);
 			return allowConsolidateInOutOverride;
 		}
-		return false;
+		else
+		{
+			return false;
+		}
 	}
 
 	@Override
@@ -583,18 +597,6 @@ public class BPartnerBL implements IBPartnerBL
 	}
 
 	@Override
-	public ShipperId getShipperIdOrNull(final BPartnerId bpartnerId)
-	{
-		final IBPartnerDAO bPartnerDAO = Services.get(IBPartnerDAO.class);
-
-		final I_C_BPartner bpartnerRecord = bPartnerDAO.getById(bpartnerId);
-
-		final int shipperId = bpartnerRecord.getM_Shipper_ID();
-
-		return ShipperId.ofRepoIdOrNull(shipperId);
-	}
-
-	@Override
 	public CountryId getBPartnerLocationCountryId(@NonNull final BPartnerLocationId bpLocationId)
 	{
 		final IBPartnerDAO bpartnersRepo = Services.get(IBPartnerDAO.class);
@@ -620,22 +622,10 @@ public class BPartnerBL implements IBPartnerBL
 	}
 
 	@Override
-	public DeliveryViaRule getDeliveryViaRuleOrNull(@NonNull final BPartnerId bpartnerId, SOTrx soTrx)
+	public ShipmentAllocationBestBeforePolicy getBestBeforePolicy(@NonNull final BPartnerId bpartnerId)
 	{
-		final I_C_BPartner bp = getById(bpartnerId);
-		
-		if (soTrx.isSales())
-		{
-			return DeliveryViaRule.ofNullableCode(bp.getDeliveryViaRule());
-		}
-		else if(soTrx.isPurchase())
-		{
-			return DeliveryViaRule.ofNullableCode(bp.getPO_DeliveryViaRule());
-		}
-		else
-		{
-			// shall not happen
-			return null;
-		}
+		final I_C_BPartner bpartner = getById(bpartnerId);
+		final ShipmentAllocationBestBeforePolicy bestBeforePolicy = ShipmentAllocationBestBeforePolicy.ofNullableCode(bpartner.getShipmentAllocation_BestBefore_Policy());
+		return bestBeforePolicy != null ? bestBeforePolicy : ShipmentAllocationBestBeforePolicy.Expiring_First;
 	}
 }

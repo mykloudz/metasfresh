@@ -54,7 +54,7 @@ public class CostAmount
 
 	public static final CostAmount ofMoney(@NonNull final Money money)
 	{
-		return new CostAmount(money.getAsBigDecimal(), money.getCurrencyId());
+		return new CostAmount(money.toBigDecimal(), money.getCurrencyId());
 	}
 
 	public static final CostAmount zero(final CurrencyId currencyId)
@@ -74,7 +74,7 @@ public class CostAmount
 			throw new AdempiereException("UOM does not match: " + price + ", " + qty);
 		}
 
-		return ofMoney(price.toMoney().multiply(qty.getAsBigDecimal()));
+		return ofMoney(price.toMoney().multiply(qty.toBigDecimal()));
 	}
 
 	BigDecimal value;
@@ -140,7 +140,7 @@ public class CostAmount
 
 	public CostAmount multiply(@NonNull final Quantity quantity)
 	{
-		return multiply(quantity.getAsBigDecimal());
+		return multiply(quantity.toBigDecimal());
 	}
 
 	public CostAmount multiply(@NonNull final Percent percent, final CurrencyPrecision precision)
@@ -155,7 +155,7 @@ public class CostAmount
 		}
 		else
 		{
-			return new CostAmount(percent.multiply(value, precision.toInt()), currencyId);
+			return new CostAmount(percent.computePercentageOf(value, precision.toInt()), currencyId);
 		}
 	}
 
@@ -183,7 +183,7 @@ public class CostAmount
 
 	public CostAmount divide(@NonNull final Quantity divisor, @NonNull final CurrencyPrecision precision)
 	{
-		return divide(divisor.getAsBigDecimal(), precision);
+		return divide(divisor.toBigDecimal(), precision);
 	}
 
 	public CostAmount roundToPrecisionIfNeeded(final CurrencyPrecision precision)

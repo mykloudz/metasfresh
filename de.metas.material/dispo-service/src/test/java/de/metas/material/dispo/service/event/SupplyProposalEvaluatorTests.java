@@ -1,7 +1,6 @@
 package de.metas.material.dispo.service.event;
 
-import static de.metas.material.event.EventTestHelper.CLIENT_ID;
-import static de.metas.material.event.EventTestHelper.ORG_ID;
+import static de.metas.material.event.EventTestHelper.CLIENT_AND_ORG_ID;
 import static de.metas.material.event.EventTestHelper.createProductDescriptor;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -11,10 +10,11 @@ import java.time.temporal.ChronoUnit;
 
 import org.adempiere.test.AdempiereTestHelper;
 import org.adempiere.test.AdempiereTestWatcher;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TestWatcher;
+import org.adempiere.warehouse.WarehouseId;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mockito;
 
 import com.google.common.collect.ImmutableList;
 
@@ -36,7 +36,6 @@ import de.metas.material.event.EventTestHelper;
 import de.metas.material.event.PostMaterialEventService;
 import de.metas.material.event.commons.MaterialDescriptor;
 import de.metas.util.time.SystemTime;
-import mockit.Mocked;
 
 /*
  * #%L
@@ -60,19 +59,15 @@ import mockit.Mocked;
  * #L%
  */
 
+@ExtendWith(AdempiereTestWatcher.class)
 public class SupplyProposalEvaluatorTests
 {
-	/** Watches the current tests and dumps the database to console in case of failure */
-	@Rule
-	public final TestWatcher testWatcher = new AdempiereTestWatcher();
-
 	private final Instant t1 = SystemTime.asInstant();
 	private final Instant t2 = t1.plus(10, ChronoUnit.MINUTES);
 	private final Instant t3 = t1.plus(20, ChronoUnit.MINUTES);
 
-	private static final int SUPPLY_WAREHOUSE_ID = 4;
-
-	private static final int DEMAND_WAREHOUSE_ID = 6;
+	private static final WarehouseId SUPPLY_WAREHOUSE_ID = WarehouseId.ofRepoId(4);
+	private static final WarehouseId DEMAND_WAREHOUSE_ID = WarehouseId.ofRepoId(6);
 
 	private DDOrderAdvisedHandler ddOrderAdvisedHandler;
 
@@ -84,12 +79,9 @@ public class SupplyProposalEvaluatorTests
 
 	private CandidateRepositoryWriteService candidateRepositoryCommands;
 
-	@Mocked
-	private PostMaterialEventService postMaterialEventService;
-
 	private AvailableToPromiseRepository availableToPromiseRepository;
 
-	@Before
+	@BeforeEach
 	public void init()
 	{
 		AdempiereTestHelper.get().init();
@@ -102,6 +94,8 @@ public class SupplyProposalEvaluatorTests
 		final StockCandidateService stockCandidateService = new StockCandidateService(
 				candidateRepositoryRetrieval,
 				candidateRepositoryCommands);
+
+		final PostMaterialEventService postMaterialEventService = Mockito.mock(PostMaterialEventService.class);
 
 		availableToPromiseRepository = new AvailableToPromiseRepository();
 
@@ -186,8 +180,7 @@ public class SupplyProposalEvaluatorTests
 				.build();
 
 		final Candidate supplyCandidate = Candidate.builder()
-				.clientId(CLIENT_ID)
-				.orgId(ORG_ID)
+				.clientAndOrgId(CLIENT_AND_ORG_ID)
 				.additionalDemandDetail(createDemandDetail())
 				.type(CandidateType.SUPPLY)
 				.materialDescriptor(supplyMaterialDescriptor)
@@ -205,8 +198,7 @@ public class SupplyProposalEvaluatorTests
 				.build();
 
 		final Candidate demandCandidate = Candidate.builder()
-				.clientId(CLIENT_ID)
-				.orgId(ORG_ID)
+				.clientAndOrgId(CLIENT_AND_ORG_ID)
 				.parentId(supplyCandidateWithId.getId())
 				.type(CandidateType.DEMAND)
 				.additionalDemandDetail(createDemandDetail())

@@ -13,9 +13,6 @@ import javax.annotation.Nullable;
 import org.adempiere.ad.dao.IQueryBL;
 import org.adempiere.ad.dao.IQueryBuilder;
 import org.adempiere.ad.trx.api.ITrx;
-import org.adempiere.impexp.AbstractImportProcess;
-import org.adempiere.impexp.IImportInterceptor;
-import org.adempiere.impexp.product.MProductImportTableSqlUpdater;
 import org.adempiere.model.InterfaceWrapperHelper;
 import org.adempiere.util.lang.IMutable;
 import org.compiere.model.IQuery;
@@ -26,6 +23,10 @@ import org.compiere.model.ModelValidationEngine;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableSet;
 
+import de.metas.impexp.processing.IImportInterceptor;
+import de.metas.impexp.processing.ImportRecordsSelection;
+import de.metas.impexp.processing.SimpleImportProcessTemplate;
+import de.metas.impexp.processing.product.MProductImportTableSqlUpdater;
 import de.metas.pricing.PriceListId;
 import de.metas.pricing.service.IPriceListDAO;
 import de.metas.product.IProductDAO;
@@ -36,7 +37,7 @@ import de.metas.vertical.pharma.model.I_M_Product;
 import de.metas.vertical.pharma.model.X_I_Pharma_Product;
 import lombok.NonNull;
 
-public class IFAProductImportProcess extends AbstractImportProcess<I_I_Pharma_Product>
+public class IFAProductImportProcess extends SimpleImportProcessTemplate<I_I_Pharma_Product>
 {
 	private final String DEACTIVATE_OPERATION_CODE = "2";
 	private final IProductDAO productDAO = Services.get(IProductDAO.class);
@@ -74,17 +75,18 @@ public class IFAProductImportProcess extends AbstractImportProcess<I_I_Pharma_Pr
 	@Override
 	protected void updateAndValidateImportRecords()
 	{
-		final String whereClause = getWhereClause();
+		final ImportRecordsSelection selection = getImportRecordsSelection();
+
 		MProductImportTableSqlUpdater.builder()
-				.whereClause(whereClause)
-				.ctx(getCtx())
-				.tableName(getImportTableName())
-				.valueName(I_I_Pharma_Product.COLUMNNAME_A00PZN)
-				.updateIPharmaProduct();
+		.selection(selection)
+		.ctx(getCtx())
+		.tableName(getImportTableName())
+		.valueName(I_I_Pharma_Product.COLUMNNAME_A00PZN)
+		.updateIPharmaProduct();
 	}
 
 	@Override
-	protected ImportRecordResult importRecord(@NonNull final IMutable<Object> state, @NonNull final I_I_Pharma_Product importRecord, final boolean isInsertOnly) 
+	protected ImportRecordResult importRecord(@NonNull final IMutable<Object> state, @NonNull final I_I_Pharma_Product importRecord, final boolean isInsertOnly)
 	{
 		final org.compiere.model.I_M_Product existentProduct = productDAO.retrieveProductByValue(importRecord.getA00PZN());
 
@@ -138,16 +140,16 @@ public class IFAProductImportProcess extends AbstractImportProcess<I_I_Pharma_Pr
 	{
 		final List<I_M_PriceList_Version> versions = retrieveLatestPriceListVersion();
 		versions.stream()
-				.filter(plv -> plv.getM_Pricelist_Version_Base_ID() > 0)
-				.forEach(plv -> {
+		.filter(plv -> plv.getM_Pricelist_Version_Base_ID() > 0)
+		.forEach(plv -> {
 
-					final MProductPriceCloningCommand productPriceCloning = MProductPriceCloningCommand.builder()
-							.source_PriceList_Version_ID(plv.getM_Pricelist_Version_Base_ID())
-							.target_PriceList_Version_ID(plv.getM_PriceList_Version_ID())
-							.build();
+			final MProductPriceCloningCommand productPriceCloning = MProductPriceCloningCommand.builder()
+					.source_PriceList_Version_ID(plv.getM_Pricelist_Version_Base_ID())
+					.target_PriceList_Version_ID(plv.getM_PriceList_Version_ID())
+					.build();
 
-					productPriceCloning.cloneProductPrice();
-				});
+			productPriceCloning.cloneProductPrice();
+		});
 
 		final String whereClause = I_I_Pharma_Product.COLUMNNAME_IsPriceCopied + " = 'N' ";
 		MProductImportTableSqlUpdater.dbUpdateIsPriceCopiedToYes(whereClause, I_I_Pharma_Product.COLUMNNAME_IsPriceCopied);

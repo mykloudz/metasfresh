@@ -9,6 +9,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 
+import org.adempiere.ad.table.api.IADTableDAO;
 import org.adempiere.util.lang.IPair;
 import org.compiere.model.I_M_InOut;
 import org.compiere.model.I_M_InOutLine;
@@ -87,8 +88,10 @@ public class HUTraceEventsService
 			I_PP_Cost_Collector.Table_Name,
 			I_M_ShipmentSchedule_QtyPicked.Table_Name);
 
-	private final HUTraceRepository huTraceRepository;
-	private final HUAccessService huAccessService;
+	private final transient HUTraceRepository huTraceRepository;
+	private final transient HUAccessService huAccessService;
+
+	private final transient IADTableDAO adTableDAO = Services.get(IADTableDAO.class);
 
 	public HUTraceEventsService(
 			@NonNull final HUTraceRepository huTraceRepository,
@@ -311,7 +314,7 @@ public class HUTraceEventsService
 						.vhuId(HuId.ofRepoId(vhu.getM_HU_ID()))
 						.topLevelHuId(HuId.ofRepoId(vhuTopLevelHuId))
 						.productId(productAndQty.get().getLeft())
-						.qty(productAndQty.get().getRight().getAsBigDecimal())
+						.qty(productAndQty.get().getRight().toBigDecimal())
 						.vhuStatus(trxLine.getHUStatus()); // we use the trx line's status here, because when creating traces for "old" HUs, the line's HUStatus is as it was at the time
 
 				final I_M_HU_Trx_Line sourceTrxLine = trxLine.getParent_HU_Trx_Line();
@@ -349,7 +352,7 @@ public class HUTraceEventsService
 							.vhuId(HuId.ofRepoId(sourceVhu.getM_HU_ID()))
 							.topLevelHuId(HuId.ofRepoId(sourceVhuTopLevelHuId))
 							.vhuSourceId(null)
-							.qty(productAndQty.get().getRight().getAsBigDecimal().negate())
+							.qty(productAndQty.get().getRight().toBigDecimal().negate())
 							.build();
 
 					// add the source before the destination because I think it's nicer if it has the lower ID
@@ -382,7 +385,7 @@ public class HUTraceEventsService
 			}
 			if (trxLine.getAD_Table_ID() > 0)
 			{
-				final String tableName = trxLine.getAD_Table().getTableName();
+				final String tableName = adTableDAO.retrieveTableName(trxLine.getAD_Table_ID());
 				if (TABLE_NAMES_IGNORED_FOR_TRANSFORMATION_TRACING.contains(tableName))
 				{
 					continue; // we only care for "standalone" HU-transactions. for the others, we have other means to trace them
@@ -450,11 +453,11 @@ public class HUTraceEventsService
 					.vhuStatus(vhu.getHUStatus())
 					.productId(productAndQty.get().getLeft())
 					.topLevelHuId(oldTopLevelHuId)
-					.qty(productAndQty.get().getRight().getAsBigDecimal().negate());
+					.qty(productAndQty.get().getRight().toBigDecimal().negate());
 			huTraceRepository.addEvent(builder.build());
 
 			builder.topLevelHuId(newTopLevelHuId)
-					.qty(productAndQty.get().getRight().getAsBigDecimal());
+					.qty(productAndQty.get().getRight().toBigDecimal());
 			huTraceRepository.addEvent(builder.build());
 		}
 	}
@@ -536,6 +539,6 @@ public class HUTraceEventsService
 		return builder
 				.vhuId(HuId.ofRepoId(vhu.getM_HU_ID()))
 				.productId(productAndQty.get().getLeft())
-				.qty(productAndQty.get().getRight().getAsBigDecimal());
+				.qty(productAndQty.get().getRight().toBigDecimal());
 	}
 }

@@ -24,16 +24,24 @@ package de.metas.inoutcandidate.api;
 
 import java.math.BigDecimal;
 import java.sql.Timestamp;
+import java.time.ZonedDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
+import java.util.Set;
 
-import org.adempiere.util.agg.key.IAggregationKeyBuilder;
 import org.adempiere.util.lang.IAutoCloseable;
+import org.adempiere.warehouse.WarehouseId;
 import org.compiere.model.I_C_UOM;
 
+import de.metas.bpartner.BPartnerId;
+import de.metas.bpartner.ShipmentAllocationBestBeforePolicy;
+import de.metas.inoutcandidate.api.impl.ShipmentScheduleHeaderAggregationKeyBuilder;
 import de.metas.inoutcandidate.async.CreateMissingShipmentSchedulesWorkpackageProcessor;
 import de.metas.inoutcandidate.model.I_M_ShipmentSchedule;
 import de.metas.inoutcandidate.spi.IShipmentSchedulesAfterFirstPassUpdater;
+import de.metas.product.ProductId;
 import de.metas.quantity.Quantity;
 import de.metas.storage.IStorageQuery;
 import de.metas.uom.UomId;
@@ -41,7 +49,7 @@ import de.metas.util.ISingletonService;
 
 public interface IShipmentScheduleBL extends ISingletonService
 {
-	public static final String MSG_ShipmentSchedules_To_Recompute = "ShipmentSchedules_To_Recompute";
+	String MSG_ShipmentSchedules_To_Recompute = "ShipmentSchedules_To_Recompute";
 
 	/**
 	 * Please use this method before calling {@link CreateMissingShipmentSchedulesWorkpackageProcessor#schedule(Properties, String)}, to avoid unneeded work packages.
@@ -111,10 +119,7 @@ public interface IShipmentScheduleBL extends ISingletonService
 	boolean isChangedByUpdateProcess(I_M_ShipmentSchedule sched);
 
 	/**
-	 * Returns the UOM of QtyOrdered, QtyToDeliver, QtyPicked etc
-	 *
-	 * @param sched
-	 * @return
+	 * Returns the UOM of QtyOrdered, QtyToDeliver, QtyPicked etc (i.e. the stock UOM)
 	 */
 	I_C_UOM getUomOfProduct(I_M_ShipmentSchedule sched);
 
@@ -133,7 +138,9 @@ public interface IShipmentScheduleBL extends ISingletonService
 	/**
 	 * Creates a new aggregation key builder which can be used to decide if two given shipment schedules can go into the same shipment.
 	 */
-	IAggregationKeyBuilder<I_M_ShipmentSchedule> mkShipmentHeaderAggregationKeyBuilder();
+	ShipmentScheduleHeaderAggregationKeyBuilder mkShipmentHeaderAggregationKeyBuilder();
+
+	void updateHeaderAggregationKey(I_M_ShipmentSchedule sched);
 
 	/**
 	 * If the given <code>shipmentSchedule</code> has its {@link I_M_ShipmentSchedule#COLUMN_QtyOrdered_Override QtyOrdered_Override} set, then override its <code>QtyOrdered</code> value with it. If
@@ -150,8 +157,6 @@ public interface IShipmentScheduleBL extends ISingletonService
 	 * Close the given Shipment Schedule.
 	 *
 	 * Closing a shipment schedule means overriding its QtyOrdered to the qty which was already delivered.
-	 *
-	 * @param schedule
 	 */
 	void closeShipmentSchedule(I_M_ShipmentSchedule schedule);
 
@@ -166,10 +171,30 @@ public interface IShipmentScheduleBL extends ISingletonService
 
 	/**
 	 * Reopen the closed shipment schedule given as parameter
-	 *
-	 * @param shipmentSchedule
 	 */
-	void openShipmentSchedule(I_M_ShipmentSchedule shipmentSchedule);
+	void openShipmentSchedule(I_M_ShipmentSchedule shipmentScheduleRecord);
 
-	Quantity getQtyToDeliver(I_M_ShipmentSchedule sched);
+	Quantity getQtyToDeliver(I_M_ShipmentSchedule shipmentScheduleRecord);
+
+	Optional<Quantity> getCatchQtyOverride(I_M_ShipmentSchedule shipmentScheduleRecord);
+
+	void resetCatchQtyOverride(I_M_ShipmentSchedule shipmentSchedule);
+
+	void updateCatchUoms(ProductId productId, long delayMs);
+
+	I_M_ShipmentSchedule getById(ShipmentScheduleId id);
+
+	Map<ShipmentScheduleId, I_M_ShipmentSchedule> getByIdsOutOfTrx(Set<ShipmentScheduleId> ids);
+
+	BPartnerId getBPartnerId(I_M_ShipmentSchedule schedule);
+
+	WarehouseId getWarehouseId(I_M_ShipmentSchedule schedule);
+
+	ZonedDateTime getPreparationDate(I_M_ShipmentSchedule schedule);
+
+	ShipmentAllocationBestBeforePolicy getBestBeforePolicy(ShipmentScheduleId id);
+
+	void applyUserChanges(ShipmentScheduleUserChangeRequestsList userChanges);
+
+	boolean isCatchWeight(I_M_ShipmentSchedule shipmentScheduleRecord);
 }

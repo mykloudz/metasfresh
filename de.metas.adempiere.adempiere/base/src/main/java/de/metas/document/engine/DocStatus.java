@@ -85,6 +85,11 @@ public enum DocStatus implements ReferenceListAwareEnum
 		return type;
 	}
 
+	public static String toCodeOrNull(@Nullable final DocStatus docStatus)
+	{
+		return docStatus != null ? docStatus.getCode() : null;
+	}
+
 	private static final ImmutableMap<String, DocStatus> typesByCode = ReferenceListAwareEnums.indexByCode(values());
 
 	public boolean isDrafted()
@@ -180,5 +185,12 @@ public enum DocStatus implements ReferenceListAwareEnum
 		return isDraftedInProgressOrInvalid()
 				|| this == Approved
 				|| this == NotApproved;
+	}
+
+	public boolean isAccountable()
+	{
+		return this == Completed
+				|| this == Reversed
+				|| this == Voided;
 	}
 }

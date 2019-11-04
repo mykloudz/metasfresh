@@ -40,7 +40,7 @@ public class UOMConversionDAO implements IUOMConversionDAO
 
 	private UOMConversionsMap retrieveProductConversions(@NonNull final ProductId productId)
 	{
-		final UomId productStockingUomId = Services.get(IProductBL.class).getStockingUOMId(productId);
+		final UomId productStockingUomId = Services.get(IProductBL.class).getStockUOMId(productId);
 
 		final ImmutableList<UOMConversionRate> rates = Services.get(IQueryBL.class)
 				.createQueryBuilderOutOfTrx(I_C_UOM_Conversion.class)
@@ -80,7 +80,7 @@ public class UOMConversionDAO implements IUOMConversionDAO
 				.build();
 	}
 
-	private static UOMConversionRate toUOMConversionOrNull(final I_C_UOM_Conversion record)
+	private static UOMConversionRate toUOMConversionOrNull(@NonNull final I_C_UOM_Conversion record)
 	{
 		final BigDecimal fromToMultiplier = record.getMultiplyRate();
 		BigDecimal toFromMultiplier = record.getDivideRate();
@@ -102,11 +102,11 @@ public class UOMConversionDAO implements IUOMConversionDAO
 		}
 
 		return UOMConversionRate.builder()
-				// .repoId(record.getC_UOM_Conversion_ID())
 				.fromUomId(UomId.ofRepoId(record.getC_UOM_ID()))
 				.toUomId(UomId.ofRepoId(record.getC_UOM_To_ID()))
 				.fromToMultiplier(fromToMultiplier)
 				.toFromMultiplier(toFromMultiplier)
+				.catchUOMForProduct(record.isCatchUOMForProduct())
 				.build();
 	}
 
@@ -120,8 +120,8 @@ public class UOMConversionDAO implements IUOMConversionDAO
 		record.setC_UOM_To_ID(request.getToUomId().getRepoId());
 		record.setMultiplyRate(request.getFromToMultiplier());
 		record.setDivideRate(request.getToFromMultiplier());
+		record.setIsCatchUOMForProduct(request.isCatchUOMForProduct());
 
 		saveRecord(record);
 	}
-
 }

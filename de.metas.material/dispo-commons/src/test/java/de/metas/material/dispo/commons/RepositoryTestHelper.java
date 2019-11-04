@@ -1,9 +1,8 @@
 package de.metas.material.dispo.commons;
 
 import static de.metas.material.event.EventTestHelper.AFTER_NOW;
-import static de.metas.material.event.EventTestHelper.CLIENT_ID;
+import static de.metas.material.event.EventTestHelper.CLIENT_AND_ORG_ID;
 import static de.metas.material.event.EventTestHelper.NOW;
-import static de.metas.material.event.EventTestHelper.ORG_ID;
 import static de.metas.material.event.EventTestHelper.PRODUCT_ID;
 import static de.metas.material.event.EventTestHelper.WAREHOUSE_ID;
 import static de.metas.material.event.EventTestHelper.createProductDescriptor;
@@ -11,9 +10,10 @@ import static de.metas.material.event.EventTestHelper.createProductDescriptor;
 import java.math.BigDecimal;
 import java.time.Instant;
 
+import org.mockito.Mockito;
+
 import de.metas.material.dispo.commons.candidate.Candidate;
 import de.metas.material.dispo.commons.candidate.CandidateType;
-import de.metas.material.dispo.commons.repository.CandidateRepositoryRetrieval;
 import de.metas.material.dispo.commons.repository.CandidateRepositoryWriteService;
 import de.metas.material.dispo.commons.repository.DateAndSeqNo;
 import de.metas.material.dispo.commons.repository.DateAndSeqNo.Operator;
@@ -23,7 +23,6 @@ import de.metas.material.dispo.commons.repository.query.CandidatesQuery;
 import de.metas.material.dispo.commons.repository.query.MaterialDescriptorQuery;
 import de.metas.material.event.commons.MaterialDescriptor;
 import lombok.NonNull;
-import mockit.Expectations;
 
 /*
  * #%L
@@ -67,8 +66,7 @@ public class RepositoryTestHelper
 				.addOrUpdateOverwriteStoredSeqNo(
 						Candidate.builder()
 								.type(CandidateType.STOCK)
-								.clientId(CLIENT_ID)
-								.orgId(ORG_ID)
+								.clientAndOrgId(CLIENT_AND_ORG_ID)
 								.materialDescriptor(materialDescriptorOfStockCandidate)
 								.build())
 				.getCandidate();
@@ -84,8 +82,7 @@ public class RepositoryTestHelper
 				.addOrUpdateOverwriteStoredSeqNo(
 						Candidate.builder()
 								.type(CandidateType.STOCK)
-								.clientId(CLIENT_ID)
-								.orgId(ORG_ID)
+								.clientAndOrgId(CLIENT_AND_ORG_ID)
 								.materialDescriptor(laterMaterialDescriptor)
 								.build())
 				.getCandidate();
@@ -130,14 +127,11 @@ public class RepositoryTestHelper
 			@NonNull final MaterialDescriptor materialDescriptor,
 			@NonNull final String quantity)
 	{
-		// @formatter:off
-		new Expectations(CandidateRepositoryRetrieval.class)
-		{{
-			final AvailableToPromiseMultiQuery query = AvailableToPromiseMultiQuery.forDescriptorAndAllPossibleBPartnerIds(materialDescriptor);
-			availableToPromiseRepository.retrieveAvailableStockQtySum(query);
-			minTimes = 0;
-			result = new BigDecimal(quantity);
-		}}; // @formatter:on
+		final AvailableToPromiseMultiQuery query = AvailableToPromiseMultiQuery.forDescriptorAndAllPossibleBPartnerIds(materialDescriptor);
+
+		Mockito.doReturn(new BigDecimal(quantity))
+				.when(availableToPromiseRepository)
+				.retrieveAvailableStockQtySum(query);
 	}
 
 }

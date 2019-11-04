@@ -10,9 +10,17 @@ import org.compiere.util.Env;
 
 import com.google.common.base.MoreObjects;
 
+import de.metas.freighcost.FreightCostRule;
+import de.metas.order.BPartnerOrderParams;
+import de.metas.order.DeliveryRule;
+import de.metas.order.DeliveryViaRule;
+import de.metas.order.InvoiceRule;
 import de.metas.ordercandidate.model.I_C_OLCand;
 import de.metas.ordercandidate.model.I_C_OLCandProcessor;
+import de.metas.payment.PaymentRule;
+import de.metas.payment.paymentterm.PaymentTermId;
 import de.metas.pricing.PricingSystemId;
+import de.metas.shipping.ShipperId;
 import de.metas.util.Check;
 import de.metas.util.Services;
 import lombok.Builder;
@@ -55,16 +63,16 @@ final class RelationTypeOLCandSource implements OLCandSource
 			final int olCandProcessorId)
 	{
 		Check.assume(olCandProcessorId > 0, "olCandProcessorId > 0");
+
 		this.olCandProcessorId = olCandProcessorId;
 		this.orderDefaults = orderDefaults;
 		this.relationTypeInternalName = mkRelationTypeInternalNameForOLCandProcessorId(olCandProcessorId);
 	}
-	
+
 	private static String mkRelationTypeInternalNameForOLCandProcessorId(final int olCandProcessorId)
 	{
 		return I_C_OLCandProcessor.Table_Name + "_" + olCandProcessorId + "<=>" + I_C_OLCand.Table_Name;
 	}
-
 
 	@Override
 	public String toString()
@@ -80,21 +88,39 @@ final class RelationTypeOLCandSource implements OLCandSource
 	{
 		// FIXME: get rid of it
 		final PO processorPO = InterfaceWrapperHelper.getPO(InterfaceWrapperHelper.loadOutOfTrx(olCandProcessorId, I_C_OLCandProcessor.class));
-		
+
 		return RelationTypeZoomProvidersFactory.instance
 				.getZoomProviderBySourceTableNameAndInternalName(I_C_OLCand.Table_Name, relationTypeInternalName)
 				.retrieveDestinations(Env.getCtx(), processorPO, I_C_OLCand.class, ITrx.TRXNAME_ThreadInherited)
 				.stream()
-				.map(this::toOLCand);
+				.map(record -> toOLCand(record));
 	}
 
-	private OLCand toOLCand(final I_C_OLCand candidatePO)
+	private OLCand toOLCand(@NonNull final I_C_OLCand olCandRecord)
 	{
-		final PricingSystemId pricingSystemId = olCandBL.getPricingSystemId(candidatePO, orderDefaults);
+		final BPartnerOrderParams params = olCandBL.getBPartnerOrderParams(olCandRecord);
+
+		final DeliveryRule deliveryRule = olCandBL.getDeliveryRule(olCandRecord, params, orderDefaults);
+		final DeliveryViaRule deliveryViaRule = olCandBL.getDeliveryViaRule(olCandRecord, params, orderDefaults);
+		final FreightCostRule freightCostRule = olCandBL.getFreightCostRule(params, orderDefaults);
+		final InvoiceRule invoiceRule = olCandBL.getInvoiceRule(params, orderDefaults);
+		final PaymentRule paymentRule = olCandBL.getPaymentRule(params, orderDefaults);
+		final PaymentTermId paymentTermId = olCandBL.getPaymentTermId(params, orderDefaults);
+		final PricingSystemId pricingSystemId = olCandBL.getPricingSystemId(olCandRecord, params, orderDefaults);
+		final ShipperId shipperId = olCandBL.getShipperId(params, orderDefaults);
+
 		return OLCand.builder()
-				.candidate(candidatePO)
-				.pricingSystemId(pricingSystemId)
 				.olCandEffectiveValuesBL(olCandEffectiveValuesBL)
+				.olCandRecord(olCandRecord)
+
+				.deliveryRule(deliveryRule)
+				.deliveryViaRule(deliveryViaRule)
+				.freightCostRule(freightCostRule)
+				.invoiceRule(invoiceRule)
+				.paymentRule(paymentRule)
+				.paymentTermId(paymentTermId)
+				.pricingSystemId(pricingSystemId)
+				.shipperId(shipperId)
 				.build();
 	}
 }

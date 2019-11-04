@@ -6,11 +6,13 @@ import java.math.BigDecimal;
 import java.util.Collection;
 import java.util.Optional;
 
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
+import de.metas.Profiles;
 import de.metas.material.dispo.commons.candidate.Candidate;
 import de.metas.material.dispo.commons.candidate.CandidateId;
 import de.metas.material.dispo.commons.candidate.CandidateType;
@@ -24,6 +26,7 @@ import de.metas.material.dispo.commons.repository.atp.AvailableToPromiseReposito
 import de.metas.material.dispo.service.candidatechange.StockCandidateService;
 import de.metas.material.event.PostMaterialEventService;
 import de.metas.material.event.supplyrequired.SupplyRequiredEvent;
+import de.metas.util.Loggables;
 import lombok.NonNull;
 
 /*
@@ -49,16 +52,13 @@ import lombok.NonNull;
  */
 
 @Service
+@Profile(Profiles.PROFILE_MaterialDispo)
 public class DemandCandiateHandler implements CandidateHandler
 {
 	private final CandidateRepositoryRetrieval candidateRepository;
-
 	private final AvailableToPromiseRepository availableToPromiseRepository;
-
 	private final PostMaterialEventService materialEventService;
-
 	private final StockCandidateService stockCandidateService;
-
 	private final CandidateRepositoryWriteService candidateRepositoryWriteService;
 
 	public DemandCandiateHandler(
@@ -81,7 +81,8 @@ public class DemandCandiateHandler implements CandidateHandler
 		return ImmutableList.of(
 				CandidateType.DEMAND,
 				CandidateType.UNRELATED_DECREASE,
-				CandidateType.INVENTORY_DOWN);
+				CandidateType.INVENTORY_DOWN,
+				CandidateType.ATTRIBUTES_CHANGED_FROM);
 	}
 
 	/**
@@ -168,7 +169,7 @@ public class DemandCandiateHandler implements CandidateHandler
 				.forDescriptorAndAllPossibleBPartnerIds(demandCandidateWithId.getMaterialDescriptor());
 
 		final BigDecimal availableQuantityAfterDemandWasApplied = availableToPromiseRepository.retrieveAvailableStockQtySum(query);
-
+		Loggables.addLog("Quantity after demand applied: {}", availableQuantityAfterDemandWasApplied);
 		if (availableQuantityAfterDemandWasApplied.signum() < 0)
 		{
 			final BigDecimal requiredQty = availableQuantityAfterDemandWasApplied.negate();
@@ -176,6 +177,7 @@ public class DemandCandiateHandler implements CandidateHandler
 			final SupplyRequiredEvent supplyRequiredEvent = SupplyRequiredEventCreator //
 					.createSupplyRequiredEvent(demandCandidateWithId, requiredQty);
 			materialEventService.postEventAfterNextCommit(supplyRequiredEvent);
+			Loggables.addLog("Fire supplyRequiredEvent after next commit; event={}", supplyRequiredEvent);
 		}
 	}
 }

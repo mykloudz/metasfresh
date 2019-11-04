@@ -1,5 +1,7 @@
 package de.metas.contracts.invoicecandidate;
 
+import static org.adempiere.model.InterfaceWrapperHelper.create;
+
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
@@ -50,9 +52,9 @@ public class FlatrateTerm_Handler extends AbstractInvoiceCandidateHandler
 	}
 
 	@Override
-	public boolean isCreateMissingCandidatesAutomatically(final Object flatrateTermObject)
+	public boolean isCreateMissingCandidatesAutomatically(final Object flatrateTerm)
 	{
-		return isMissingInvoiceCandidate(flatrateTermObject);
+		return isMissingInvoiceCandidate(flatrateTerm);
 	}
 
 	/**
@@ -79,9 +81,9 @@ public class FlatrateTerm_Handler extends AbstractInvoiceCandidateHandler
 	}
 
 	@Override
-	public boolean isMissingInvoiceCandidate(final Object flatrateTermObject)
+	public boolean isMissingInvoiceCandidate(final Object flatrateTermObj)
 	{
-		final I_C_Flatrate_Term flatrateTerm = (I_C_Flatrate_Term)flatrateTermObject;
+		final I_C_Flatrate_Term flatrateTerm = create(flatrateTermObj, I_C_Flatrate_Term.class);
 
 		final Collection<ConditionTypeSpecificInvoiceCandidateHandler> specificHandlers = conditionTypeSpecificInvoiceCandidateHandlers.values();
 
@@ -171,15 +173,15 @@ public class FlatrateTerm_Handler extends AbstractInvoiceCandidateHandler
 
 		final Quantity calculateQtyOrdered = handler.calculateQtyEntered(ic);
 
-		ic.setQtyEntered(calculateQtyOrdered.getAsBigDecimal());
-		ic.setC_UOM_ID(calculateQtyOrdered.getUOMId());
+		ic.setQtyEntered(calculateQtyOrdered.toBigDecimal());
+		ic.setC_UOM_ID(calculateQtyOrdered.getUomId().getRepoId());
 
 		final ProductId productId = ProductId.ofRepoId(term.getM_Product_ID());
 
 		final IUOMConversionBL uomConversionBL = Services.get(IUOMConversionBL.class);
 
 		final Quantity qtyInProductUOM = uomConversionBL.convertToProductUOM(calculateQtyOrdered, productId);
-		ic.setQtyOrdered(qtyInProductUOM.getAsBigDecimal());
+		ic.setQtyOrdered(qtyInProductUOM.toBigDecimal());
 	}
 
 	/**

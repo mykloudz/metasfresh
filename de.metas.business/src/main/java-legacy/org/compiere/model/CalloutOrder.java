@@ -34,7 +34,6 @@ import org.compiere.Adempiere;
 import org.compiere.util.DB;
 import org.compiere.util.DisplayType;
 import org.compiere.util.Env;
-import org.compiere.util.Util;
 
 import de.metas.adempiere.model.I_AD_User;
 import de.metas.bpartner.BPartnerId;
@@ -46,6 +45,7 @@ import de.metas.bpartner.service.IBPartnerOrgBL;
 import de.metas.bpartner.service.IBPartnerStatsDAO;
 import de.metas.currency.CurrencyPrecision;
 import de.metas.document.DocTypeId;
+import de.metas.document.DocTypeQuery;
 import de.metas.document.IDocTypeDAO;
 import de.metas.document.sequence.IDocumentNoBuilderFactory;
 import de.metas.document.sequence.impl.IDocumentNoInfo;
@@ -74,6 +74,7 @@ import de.metas.uom.UOMConversionContext;
 import de.metas.uom.UomId;
 import de.metas.util.Check;
 import de.metas.util.Services;
+import de.metas.util.lang.CoalesceUtil;
 import de.metas.util.lang.Percent;
 import lombok.Builder;
 import lombok.NonNull;
@@ -380,10 +381,24 @@ public class CalloutOrder extends CalloutEngine
 			if (rs.next())
 			{
 				// metas: Auftragsart aus Kunde
-				final Integer docTypeTargetId = rs.getInt("SO_DocTypeTarget_ID");
-				if (IsSOTrx && docTypeTargetId > 0)
+				if (IsSOTrx)
 				{
-					Services.get(IOrderBL.class).setDocTypeTargetIdAndUpdateDescription(order, docTypeTargetId);
+					DocTypeId docTypeTargetId = DocTypeId.ofRepoIdOrNull(rs.getInt("SO_DocTypeTarget_ID"));
+
+					if(docTypeTargetId == null)
+					{
+						docTypeTargetId = Services.get(IDocTypeDAO.class).getDocTypeIdOrNull(DocTypeQuery.builder()
+								.docBaseType(X_C_DocType.DOCBASETYPE_SalesOrder)
+								.docSubType(X_C_DocType.DOCSUBTYPE_StandardOrder)
+								.adClientId(order.getAD_Client_ID())
+								.adOrgId(order.getAD_Org_ID())
+								.build());
+					}
+
+					if(docTypeTargetId != null)
+					{
+						Services.get(IOrderBL.class).setDocTypeTargetIdAndUpdateDescription(order, docTypeTargetId);
+					}
 				}
 
 				// Sales Rep - If BP has a default SalesRep then default it
@@ -735,7 +750,7 @@ public class CalloutOrder extends CalloutEngine
 					{
 						final BPartnerCreditLimitRepository creditLimitRepo = Adempiere.getBean(BPartnerCreditLimitRepository.class);
 						final BigDecimal creditLimit = creditLimitRepo.retrieveCreditLimitByBPartnerId(bill_BPartner_ID, order.getDateOrdered());
-						final BigDecimal creditUsed = Util.coalesce(rs.getBigDecimal(I_C_BPartner_Stats.COLUMNNAME_SO_CreditUsed), BigDecimal.ZERO);
+						final BigDecimal creditUsed = CoalesceUtil.coalesce(rs.getBigDecimal(I_C_BPartner_Stats.COLUMNNAME_SO_CreditUsed), BigDecimal.ZERO);
 						final BigDecimal creditAvailable = creditLimit.subtract(creditUsed);
 						if (creditAvailable.signum() < 0)
 						{
@@ -853,11 +868,11 @@ public class CalloutOrder extends CalloutEngine
 
 		//
 		// Charge: reset
-		orderLine.setC_Charge(null);
+		orderLine.setC_Charge_ID(-1);
 
 		//
 		// UOMs: reset them to avoid UOM conversion errors between previous UOM and current product's UOMs (see FRESH-936 #69)
-		orderLine.setC_UOM_ID(Services.get(IProductBL.class).getStockingUOMId(orderLine.getM_Product_ID()).getRepoId());
+		orderLine.setC_UOM_ID(Services.get(IProductBL.class).getStockUOMId(orderLine.getM_Product_ID()).getRepoId());
 		orderLine.setPrice_UOM_ID(-1); // reset; will be set when we update pricing
 
 		// Set Attribute
@@ -895,7 +910,7 @@ public class CalloutOrder extends CalloutEngine
 		// No Product defined
 		if (orderLine.getM_Product_ID() > 0)
 		{
-			orderLine.setC_Charge(null);
+			orderLine.setC_Charge_ID(-1);
 			throw new AdempiereException("ChargeExclusively");
 		}
 		orderLine.setM_AttributeSetInstance(null);
@@ -1250,7 +1265,7 @@ public class CalloutOrder extends CalloutEngine
 		if (M_Product_ID > 0 && orderLine.getC_Order().isSOTrx()
 				&& QtyOrdered.signum() > 0)  // no negative (returns)
 		{
-			if (Services.get(IProductBL.class).isStocked(M_Product_ID))
+			if (Services.get(IProductBL.class).isStocked(ProductId.ofRepoIdOrNull(M_Product_ID)))
 			{
 				final int M_Warehouse_ID = orderLine.getM_Warehouse_ID();
 				final int M_AttributeSetInstance_ID = orderLine.getM_AttributeSetInstance_ID();

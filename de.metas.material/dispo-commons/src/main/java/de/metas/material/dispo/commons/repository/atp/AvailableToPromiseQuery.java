@@ -8,12 +8,14 @@ import java.util.Set;
 
 import javax.annotation.Nullable;
 
+import org.adempiere.warehouse.WarehouseId;
 import org.compiere.util.TimeUtil;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
-import de.metas.material.event.commons.AttributesKey;
+import de.metas.material.commons.attributes.AttributesKeyPattern;
+import de.metas.material.commons.attributes.AttributesKeyPatterns;
 import de.metas.material.event.commons.MaterialDescriptor;
 import de.metas.util.Check;
 import de.metas.util.time.SystemTime;
@@ -53,27 +55,27 @@ public class AvailableToPromiseQuery
 				.warehouseId(materialDescriptor.getWarehouseId())
 				.date(TimeUtil.asZonedDateTime(materialDescriptor.getDate()))
 				.productId(materialDescriptor.getProductId())
-				.storageAttributesKey(materialDescriptor.getStorageAttributesKey())
+				.storageAttributesKeyPattern(AttributesKeyPatterns.ofAttributeKey(materialDescriptor.getStorageAttributesKey()))
 				.bpartner(BPartnerClassifier.specificOrNone(materialDescriptor.getCustomerId()))
 				.build();
 	}
 
-	ImmutableSet<Integer> warehouseIds;
+	ImmutableSet<WarehouseId> warehouseIds;
 
 	/** optional; if null, then "now" is used */
 	ZonedDateTime date;
 
 	ImmutableList<Integer> productIds;
-	ImmutableList<AttributesKey> storageAttributesKeys;
+	ImmutableList<AttributesKeyPattern> storageAttributesKeyPatterns;
 
 	BPartnerClassifier bpartner;
 
 	@Builder(toBuilder = true)
 	private AvailableToPromiseQuery(
-			@Singular final Set<Integer> warehouseIds,
+			@Singular final Set<WarehouseId> warehouseIds,
 			@Nullable final ZonedDateTime date,
 			@Singular final List<Integer> productIds,
-			@Singular final List<AttributesKey> storageAttributesKeys,
+			@Singular final List<AttributesKeyPattern> storageAttributesKeyPatterns,
 			@Nullable final BPartnerClassifier bpartner)
 	{
 		Check.assumeNotEmpty(productIds, "productIds is not empty");
@@ -81,7 +83,7 @@ public class AvailableToPromiseQuery
 		this.warehouseIds = warehouseIds == null || warehouseIds.isEmpty() ? ImmutableSet.of() : ImmutableSet.copyOf(warehouseIds);
 		this.date = date != null ? date : SystemTime.asZonedDateTime();
 		this.productIds = ImmutableList.copyOf(productIds);
-		this.storageAttributesKeys = ImmutableList.copyOf(storageAttributesKeys);
+		this.storageAttributesKeyPatterns = ImmutableList.copyOf(storageAttributesKeyPatterns);
 		this.bpartner = bpartner != null ? bpartner : BPartnerClassifier.none();
 	}
 

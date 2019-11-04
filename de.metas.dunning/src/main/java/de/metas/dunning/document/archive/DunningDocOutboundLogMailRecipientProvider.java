@@ -10,7 +10,8 @@ import org.springframework.stereotype.Component;
 import de.metas.bpartner.BPartnerId;
 import de.metas.bpartner.BPartnerLocationId;
 import de.metas.bpartner.service.IBPartnerBL;
-import de.metas.bpartner.service.IBPartnerBL.RetrieveBillContactRequest;
+import de.metas.bpartner.service.IBPartnerBL.RetrieveContactRequest;
+import de.metas.bpartner.service.IBPartnerBL.RetrieveContactRequest.ContactType;
 import de.metas.document.archive.mailrecipient.DocOutBoundRecipient;
 import de.metas.document.archive.mailrecipient.DocOutBoundRecipientId;
 import de.metas.document.archive.mailrecipient.DocOutBoundRecipientRepository;
@@ -97,34 +98,35 @@ public class DunningDocOutboundLogMailRecipientProvider
 			final DocOutBoundRecipient invoiceUser = recipientRepository.getById(DocOutBoundRecipientId.ofRepoId(singleCommonInvoiceContactId));
 			if (Check.isEmpty(invoiceUser.getEmailAddress(), true))
 			{
-				Loggables.get().addLog("The dunned invoices' common invoiceUser={} has not mail address", invoiceUser);
+				Loggables.addLog("The dunned invoices' common invoiceUser={} has not mail address", invoiceUser);
 			}
 			else
 			{
-				Loggables.get().addLog("The dunned invoices all have invoiceUser={}, so we take that user as the dunning mail's participant", invoiceUser);
+				Loggables.addLog("The dunned invoices all have invoiceUser={}, so we take that user as the dunning mail's participant", invoiceUser);
 				return Optional.of(invoiceUser);
 			}
 		}
 
 		final BPartnerId bpartnerId = BPartnerId.ofRepoId(dunningRecord.getC_BPartner_ID());
 		final BPartnerLocationId bPartnerLocationId = BPartnerLocationId.ofRepoId(bpartnerId, dunningRecord.getC_BPartner_Location_ID());
-		final RetrieveBillContactRequest request = RetrieveBillContactRequest
+		final RetrieveContactRequest request = RetrieveContactRequest
 				.builder()
 				.bpartnerId(bpartnerId)
 				.bPartnerLocationId(bPartnerLocationId)
+				.contactType(ContactType.BILL_TO_DEFAULT)
 				.filter(user -> !Check.isEmpty(user.getEmailAddress(), true))
 				.build();
 
-		final User billContact = bpartnerBL.retrieveBillContactOrNull(request);
+		final User billContact = bpartnerBL.retrieveContactOrNull(request);
 		if (billContact != null)
 		{
-			Loggables.get().addLog("Found billContact={} with a mail address for bpartnerId={} and bPartnerLocationId={}", billContact, bpartnerId, bPartnerLocationId);
+			Loggables.addLog("Found billContact={} with a mail address for bpartnerId={} and bPartnerLocationId={}", billContact, bpartnerId, bPartnerLocationId);
 
 			final DocOutBoundRecipient docOutBoundRecipient = recipientRepository.getById(DocOutBoundRecipientId.ofRepoId(billContact.getId().getRepoId()));
 			return Optional.of(docOutBoundRecipient);
 		}
 
-		Loggables.get().addLog("Found no billContact with a mail address for bpartnerId={} and bPartnerLocationId={}", bpartnerId, bPartnerLocationId);
+		Loggables.addLog("Found no billContact with a mail address for bpartnerId={} and bPartnerLocationId={}", bpartnerId, bPartnerLocationId);
 		return Optional.empty();
 	}
 

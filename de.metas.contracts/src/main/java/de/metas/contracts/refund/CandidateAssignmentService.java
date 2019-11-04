@@ -1,6 +1,5 @@
 package de.metas.contracts.refund;
 
-import static de.metas.util.Check.fail;
 import static de.metas.util.collections.CollectionUtils.extractSingleElement;
 import static de.metas.util.collections.CollectionUtils.singleElement;
 
@@ -12,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.adempiere.ad.dao.IQueryBL;
+import org.adempiere.exceptions.AdempiereException;
 import org.springframework.stereotype.Service;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -175,8 +175,10 @@ public class CandidateAssignmentService
 						refundContract);
 
 			default:
-				fail("Unexpected refundMode= {}", refundMode);
-				return null;
+				throw new AdempiereException("Unexpected refundMode=" + refundMode)
+						.appendParametersToMessage()
+						.setParameter("assignableCandidate", assignableCandidate)
+						.setParameter("refundContract", refundContract);
 		}
 	}
 
@@ -291,11 +293,11 @@ public class CandidateAssignmentService
 		// therefore we can get the "biggest" refund config like this.
 		final RefundConfig oldRefundConfig = refundCandidate
 				.getRefundContract()
-				.getRefundConfig(previouslyAssignedQty.getAsBigDecimal());
+				.getRefundConfig(previouslyAssignedQty.toBigDecimal());
 
 		final RefundConfig newRefundConfig = refundCandidate
 				.getRefundContract()
-				.getRefundConfig(refundCandidate.getAssignedQuantity().getAsBigDecimal());
+				.getRefundConfig(refundCandidate.getAssignedQuantity().toBigDecimal());
 
 		// check if the current quantity still matches the respective candidate's current refund-config's minQty;
 		if (!oldRefundConfig.getId().equals(newRefundConfig.getId()))

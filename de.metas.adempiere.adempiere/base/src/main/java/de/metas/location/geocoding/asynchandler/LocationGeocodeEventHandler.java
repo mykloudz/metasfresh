@@ -4,8 +4,7 @@ import java.util.Optional;
 
 import javax.annotation.PostConstruct;
 
-import org.adempiere.ad.service.IErrorManager;
-import org.compiere.model.I_AD_Issue;
+import com.google.common.annotations.VisibleForTesting;
 import org.compiere.model.I_C_Location;
 import org.compiere.model.X_C_Location;
 import org.springframework.context.annotation.Profile;
@@ -14,12 +13,14 @@ import org.springframework.stereotype.Component;
 import com.google.common.base.Joiner;
 
 import de.metas.Profiles;
+import de.metas.error.AdIssueId;
+import de.metas.error.IErrorManager;
 import de.metas.event.IEventBusFactory;
 import de.metas.location.CountryId;
 import de.metas.location.ICountryDAO;
 import de.metas.location.ILocationDAO;
 import de.metas.location.geocoding.GeoCoordinatesRequest;
-import de.metas.location.geocoding.GeoCoordinatesService;
+import de.metas.location.geocoding.GeocodingService;
 import de.metas.location.geocoding.GeographicalCoordinates;
 import de.metas.location.geocoding.interceptor.C_Location;
 import de.metas.util.Services;
@@ -53,15 +54,15 @@ class LocationGeocodeEventHandler
 {
 	private final ILocationDAO locationsRepo = Services.get(ILocationDAO.class);
 	private final ICountryDAO countryDAO = Services.get(ICountryDAO.class);
-	private final GeoCoordinatesService geoCoordinatesService;
+	private final GeocodingService geocodingService;
 	private final IEventBusFactory eventBusFactory;
 
 	public LocationGeocodeEventHandler(
 			@NonNull final IEventBusFactory eventBusFactory,
-			@NonNull final GeoCoordinatesService geoCoordinatesService)
+			@NonNull final GeocodingService geocodingService)
 	{
 		this.eventBusFactory = eventBusFactory;
-		this.geoCoordinatesService = geoCoordinatesService;
+		this.geocodingService = geocodingService;
 	}
 
 	@PostConstruct
@@ -72,14 +73,16 @@ class LocationGeocodeEventHandler
 				.subscribeOn(LocationGeocodeEventRequest.class, this::handleEvent);
 	}
 
-	private void handleEvent(@NonNull final LocationGeocodeEventRequest request)
+	@SuppressWarnings("WeakerAccess")
+	@VisibleForTesting
+	void handleEvent(@NonNull final LocationGeocodeEventRequest request)
 	{
 		final I_C_Location locationRecord = locationsRepo.getById(request.getLocationId());
 		final GeoCoordinatesRequest coordinatesRequest = createGeoCoordinatesRequest(locationRecord);
 
 		try
 		{
-			final Optional<GeographicalCoordinates> xoy = geoCoordinatesService.findBestCoordinates(coordinatesRequest);
+			final Optional<GeographicalCoordinates> xoy = geocodingService.findBestCoordinates(coordinatesRequest);
 			if (xoy.isPresent())
 			{
 				locationRecord.setLatitude(xoy.get().getLatitude());
@@ -97,10 +100,10 @@ class LocationGeocodeEventHandler
 		}
 		catch (final Exception ex)
 		{
-			final I_AD_Issue issue = Services.get(IErrorManager.class).createIssue(ex);
+			final AdIssueId issueId = Services.get(IErrorManager.class).createIssue(ex);
 
 			locationRecord.setGeocodingStatus(X_C_Location.GEOCODINGSTATUS_Error);
-			locationRecord.setGeocoding_Issue_ID(issue.getAD_Issue_ID());
+			locationRecord.setGeocoding_Issue_ID(issueId.getRepoId());
 		}
 		finally
 		{
@@ -108,7 +111,7 @@ class LocationGeocodeEventHandler
 		}
 	}
 
-	private GeoCoordinatesRequest createGeoCoordinatesRequest(final I_C_Location locationRecord)
+	private GeoCoordinatesRequest createGeoCoordinatesRequest(@NonNull final I_C_Location locationRecord)
 	{
 		final String countryCode2 = countryDAO.retrieveCountryCode2ByCountryId(CountryId.ofRepoId(locationRecord.getC_Country_ID()));
 
@@ -120,12 +123,11 @@ class LocationGeocodeEventHandler
 
 		final String city = locationRecord.getCity();
 
-		final GeoCoordinatesRequest coordinatesRequest = GeoCoordinatesRequest.builder()
+		return GeoCoordinatesRequest.builder()
 				.countryCode2(countryCode2)
 				.address(address)
 				.postal(postal)
 				.city(city)
 				.build();
-		return coordinatesRequest;
 	}
 }

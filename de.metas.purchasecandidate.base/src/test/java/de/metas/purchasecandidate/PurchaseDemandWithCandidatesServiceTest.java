@@ -144,7 +144,7 @@ public class PurchaseDemandWithCandidatesServiceTest
 		productRecord.setValue("product.Value");
 		productRecord.setName("product.Name");
 		productRecord.setC_UOM_ID(uomRecord.getC_UOM_ID());
-		productRecord.setM_Product_Category(productCategory);
+		productRecord.setM_Product_Category_ID(productCategory.getM_Product_Category_ID());
 		saveRecord(productRecord);
 
 		final I_M_DiscountSchema discountSchemaRecord = newInstance(I_M_DiscountSchema.class);
@@ -157,7 +157,7 @@ public class PurchaseDemandWithCandidatesServiceTest
 
 		discountSchemaBreakRecord = newInstance(I_M_DiscountSchemaBreak.class);
 		discountSchemaBreakRecord.setM_DiscountSchema(discountSchemaRecord);
-		discountSchemaBreakRecord.setC_PaymentTerm(paymentTermRecord);
+		discountSchemaBreakRecord.setC_PaymentTerm_ID(paymentTermRecord.getC_PaymentTerm_ID());
 		discountSchemaBreakRecord.setPaymentDiscount(TEN);
 		discountSchemaBreakRecord.setPriceBase(X_M_DiscountSchemaBreak.PRICEBASE_Fixed);
 		discountSchemaBreakRecord.setPriceStdFixed(TEN);
@@ -268,8 +268,8 @@ public class PurchaseDemandWithCandidatesServiceTest
 		final PurchaseCandidatesGroup candidatesGroup = candidatesGroups.get(0);
 		assertThat(candidatesGroup.getOrgId()).isEqualTo(orgId);
 		assertThat(candidatesGroup.getPurchaseCandidateIds()).containsOnly(PurchaseCandidateId.ofRepoId(purchaseCandidateRecord.getC_PurchaseCandidate_ID()));
-		assertThat(candidatesGroup.getPurchasedQty().getAsBigDecimal()).isEqualByComparingTo(PO_QTY_ORDERED_ONE);
-		assertThat(candidatesGroup.getQtyToPurchase().getAsBigDecimal()).isEqualByComparingTo(QTY_TO_PURCHASE_NINE);
+		assertThat(candidatesGroup.getPurchasedQty().toBigDecimal()).isEqualByComparingTo(PO_QTY_ORDERED_ONE);
+		assertThat(candidatesGroup.getQtyToPurchase().toBigDecimal()).isEqualByComparingTo(QTY_TO_PURCHASE_NINE);
 		assertThat(candidatesGroup.getPurchasedQty().getUOM()).isEqualTo(uomRecord);
 		assertThat(candidatesGroup.isReadonly()).isEqualTo(processed);
 	}
@@ -290,8 +290,8 @@ public class PurchaseDemandWithCandidatesServiceTest
 
 		assertThat(candidatesGroup.getOrgId()).isEqualTo(orgId);
 		assertThat(candidatesGroup.getPurchaseCandidateIds()).isEmpty();
-		assertThat(candidatesGroup.getPurchasedQty().getAsBigDecimal()).isEqualByComparingTo(ZERO);
-		assertThat(candidatesGroup.getQtyToPurchase().getAsBigDecimal()).isEqualByComparingTo(ZERO);
+		assertThat(candidatesGroup.getPurchasedQty().toBigDecimal()).isEqualByComparingTo(ZERO);
+		assertThat(candidatesGroup.getQtyToPurchase().toBigDecimal()).isEqualByComparingTo(ZERO);
 		assertThat(candidatesGroup.getPurchasedQty().getUOM()).isEqualTo(uomRecord);
 		assertThat(candidatesGroup.isReadonly()).isEqualTo(false);
 
@@ -341,8 +341,8 @@ public class PurchaseDemandWithCandidatesServiceTest
 				.allSatisfy(candidatesGroup -> {
 					assertThat(candidatesGroup.getOrgId()).isEqualTo(orgId);
 					assertThat(candidatesGroup.getPurchaseCandidateIds()).containsOnly(PurchaseCandidateId.ofRepoId(purchaseCandidateRecord.getC_PurchaseCandidate_ID()));
-					assertThat(candidatesGroup.getPurchasedQty().getAsBigDecimal()).isEqualByComparingTo(PO_QTY_ORDERED_ONE);
-					assertThat(candidatesGroup.getQtyToPurchase().getAsBigDecimal()).isEqualByComparingTo(QTY_TO_PURCHASE_NINE); // the 9 is loaded from out candidate record.
+					assertThat(candidatesGroup.getPurchasedQty().toBigDecimal()).isEqualByComparingTo(PO_QTY_ORDERED_ONE);
+					assertThat(candidatesGroup.getQtyToPurchase().toBigDecimal()).isEqualByComparingTo(QTY_TO_PURCHASE_NINE); // the 9 is loaded from out candidate record.
 					assertThat(candidatesGroup.getPurchasedQty().getUOM()).isEqualTo(uomRecord);
 					assertThat(candidatesGroup.isReadonly()).isEqualTo(true);
 				});
@@ -353,8 +353,8 @@ public class PurchaseDemandWithCandidatesServiceTest
 				.allSatisfy(candidatesGroup -> {
 					assertThat(candidatesGroup.getOrgId()).isEqualTo(orgId);
 					assertThat(candidatesGroup.getPurchaseCandidateIds()).isEmpty();
-					assertThat(candidatesGroup.getPurchasedQty().getAsBigDecimal()).isEqualByComparingTo(ZERO);
-					assertThat(candidatesGroup.getQtyToPurchase().getAsBigDecimal()).isEqualByComparingTo(ZERO);
+					assertThat(candidatesGroup.getPurchasedQty().toBigDecimal()).isEqualByComparingTo(ZERO);
+					assertThat(candidatesGroup.getQtyToPurchase().toBigDecimal()).isEqualByComparingTo(ZERO);
 					assertThat(candidatesGroup.getPurchasedQty().getUOM()).isEqualTo(uomRecord);
 					assertThat(candidatesGroup.isReadonly()).isEqualTo(false);
 				});
@@ -381,8 +381,8 @@ public class PurchaseDemandWithCandidatesServiceTest
 
 		final PurchaseCandidatesGroup candidatesGroup = purchaseCandidatesGroups.get(0);
 		assertThat(candidatesGroup.isReadonly()).isFalse();
-		assertThat(candidatesGroup.getPurchasedQty().getAsBigDecimal()).isEqualByComparingTo(PO_QTY_ORDERED_ONE);
-		assertThat(candidatesGroup.getQtyToPurchase().getAsBigDecimal()).isEqualByComparingTo(QTY_TO_PURCHASE_NINE);
+		assertThat(candidatesGroup.getPurchasedQty().toBigDecimal()).isEqualByComparingTo(PO_QTY_ORDERED_ONE);
+		assertThat(candidatesGroup.getQtyToPurchase().toBigDecimal()).isEqualByComparingTo(QTY_TO_PURCHASE_NINE);
 	}
 
 }

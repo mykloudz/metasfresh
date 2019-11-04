@@ -254,7 +254,7 @@ public class CalloutInvoice extends CalloutEngine
 		// TODO: Fix in next step (refactoring: Move the apply method from MPaymentTerm to a BL)
 		final MPaymentTerm pt = InterfaceWrapperHelper.getPO(paymentTerm);
 
-		final boolean valid = pt.apply(invoice.getC_Invoice_ID());
+		final boolean valid = pt.apply(invoice);
 		invoice.setIsPayScheduleValid(valid);
 
 		return NO_ERROR;
@@ -470,14 +470,14 @@ public class CalloutInvoice extends CalloutEngine
 		log.debug("Org=" + orgID);
 
 		final int warehouseID = calloutField.getGlobalContextAsInt("#M_Warehouse_ID");
-		log.debug("Warehouse=" + warehouseID);
+		log.debug("Warehouse={}", warehouseID);
 
 		//
 		final int taxID = Tax.get(ctx, productID, chargeID, billDate,
 				shipDate, orgID, warehouseID,
 				billBPartnerLocationID, shipBPartnerLocationID, invoice.isSOTrx());
 
-		log.info("Tax ID=" + taxID);
+		log.debug("Tax ID={}", taxID);
 
 		//
 		if (taxID <= 0)
@@ -695,7 +695,7 @@ public class CalloutInvoice extends CalloutEngine
 		// Line Net Amt
 		final CurrencyPrecision netPrecision = Services.get(IPriceListBL.class).getAmountPrecision(priceListId);
 		BigDecimal lineNetAmt = netPrecision.roundIfNeeded(qtyInvoiced.multiply(priceActual));
-		log.info("amt = LineNetAmt=" + lineNetAmt);
+		log.debug("amt = LineNetAmt={}", lineNetAmt);
 
 		invoiceLine.setLineNetAmt(lineNetAmt);
 

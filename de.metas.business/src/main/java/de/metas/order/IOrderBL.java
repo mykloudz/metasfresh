@@ -1,5 +1,6 @@
 package de.metas.order;
 
+import java.time.ZoneId;
 import java.util.Properties;
 
 import org.compiere.model.I_AD_User;
@@ -13,9 +14,11 @@ import org.compiere.model.I_M_PriceList_Version;
 import de.metas.bpartner.BPartnerContactId;
 import de.metas.bpartner.BPartnerLocationId;
 import de.metas.currency.CurrencyPrecision;
+import de.metas.document.DocTypeId;
 import de.metas.pricing.PriceListId;
 import de.metas.pricing.PricingSystemId;
 import de.metas.pricing.exceptions.PriceListNotFoundException;
+import de.metas.project.ProjectId;
 import de.metas.util.ISingletonService;
 
 public interface IOrderBL extends ISingletonService
@@ -111,7 +114,13 @@ public interface IOrderBL extends ISingletonService
 	 */
 	void setDocTypeTargetId(I_C_Order order);
 
-	void setDocTypeTargetIdAndUpdateDescription(I_C_Order order, int docTypeId);
+	void setDocTypeTargetIdAndUpdateDescription(I_C_Order order, DocTypeId docTypeId);
+
+	@Deprecated
+	default void setDocTypeTargetIdAndUpdateDescription(I_C_Order order, int docTypeId)
+	{
+		setDocTypeTargetIdAndUpdateDescription(order, DocTypeId.ofRepoId(docTypeId));
+	}
 
 	/**
 	 * Updates the addresses in the order lines from the order. Also sets the header info in the lines.
@@ -223,4 +232,9 @@ public interface IOrderBL extends ISingletonService
 	I_C_BPartner getBPartner(I_C_Order order);
 
 	I_C_BPartner getBPartnerOrNull(I_C_Order order);
+
+	ProjectId getProjectIdOrNull(OrderLineId orderLineId);
+
+	/** @return organization's timezone or system timezone; never returns null */
+	ZoneId getTimeZone(I_C_Order order);
 }

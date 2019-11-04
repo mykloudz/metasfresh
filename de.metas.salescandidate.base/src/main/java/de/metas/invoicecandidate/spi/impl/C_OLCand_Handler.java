@@ -30,12 +30,12 @@ import static org.adempiere.model.InterfaceWrapperHelper.saveRecord;
  */
 
 import java.util.Iterator;
-import java.util.List;
 import java.util.Properties;
 
 import org.adempiere.ad.table.api.IADTableDAO;
 import org.adempiere.ad.trx.api.ITrx;
 import org.adempiere.service.ClientId;
+import org.adempiere.util.lang.impl.TableRecordReference;
 import org.adempiere.warehouse.WarehouseId;
 import org.compiere.util.Env;
 import org.compiere.util.TimeUtil;
@@ -92,8 +92,8 @@ public class C_OLCand_Handler extends AbstractInvoiceCandidateHandler
 	@Override
 	public boolean isCreateMissingCandidatesAutomatically(final Object model)
 	{
-		final I_C_OLCand olCand = create(model, I_C_OLCand.class);
-		if (!isEligibleForInvoiceCandidateCreate(olCand))
+		final I_C_OLCand olCandRecord = create(model, I_C_OLCand.class);
+		if (!isEligibleForInvoiceCandidateCreate(olCandRecord))
 		{
 			return false;
 		}
@@ -176,6 +176,7 @@ public class C_OLCand_Handler extends AbstractInvoiceCandidateHandler
 
 		ic.setQtyToInvoice(ZERO); // to be computed
 
+		ic.setInvoicableQtyBasedOn(olc.getInvoicableQtyBasedOn());
 		ic.setM_PricingSystem_ID(olc.getM_PricingSystem_ID());
 		ic.setPriceActual(olc.getPriceActual());
 		ic.setPrice_UOM_ID(olCandEffectiveValuesBL.getC_UOM_Effective_ID(olc)); // 07090 when we set PriceActual, we shall also set PriceUOM.
@@ -206,7 +207,7 @@ public class C_OLCand_Handler extends AbstractInvoiceCandidateHandler
 		// 05265
 		ic.setIsSOTrx(true);
 
-		ic.setDateInvoiced(olc.getDateInvoiced());
+		ic.setPresetDateInvoiced(olc.getPresetDateInvoiced());
 		ic.setC_DocTypeInvoice_ID(olc.getC_DocTypeInvoice_ID());
 
 		// 07442 activity and tax
@@ -222,14 +223,15 @@ public class C_OLCand_Handler extends AbstractInvoiceCandidateHandler
 				ic, // model
 				TaxCategoryId.ofRepoIdOrNull(olc.getC_TaxCategory_ID()),
 				ProductId.toRepoId(productId),
-				CoalesceUtil.coalesce(olc.getDatePromised_Override(), olc.getDatePromised(), olc.getDateInvoiced()),
+				CoalesceUtil.coalesce(olc.getDatePromised_Override(), olc.getDatePromised(), olc.getPresetDateInvoiced()),
 				orgId,
 				(WarehouseId)null,
 				BPartnerLocationId.toRepoId(olCandEffectiveValuesBL.getDropShipLocationEffectiveId(olc)),
 				true /* isSOTrx */);
 		ic.setC_Tax_ID(taxId);
 
-		ic.setExternalId(olc.getExternalLineId());
+		ic.setExternalLineId(olc.getExternalLineId());
+		ic.setExternalHeaderId(olc.getExternalHeaderId());
 
 		olc.setProcessed(true);
 		saveRecord(olc);
@@ -240,19 +242,8 @@ public class C_OLCand_Handler extends AbstractInvoiceCandidateHandler
 	@Override
 	public void invalidateCandidatesFor(@NonNull final Object model)
 	{
-		final I_C_OLCand olc = create(model, I_C_OLCand.class);
-		invalidateCandidatesForOLCand(olc);
-	}
-
-	private void invalidateCandidatesForOLCand(@NonNull final I_C_OLCand olc)
-	{
 		final IInvoiceCandDAO invoiceCandDAO = Services.get(IInvoiceCandDAO.class);
-
-		final Properties ctx = getCtx(olc);
-		final String trxName = getTrxName(olc);
-
-		final List<I_C_Invoice_Candidate> ics = invoiceCandDAO.fetchInvoiceCandidates(ctx, I_C_OLCand.Table_Name, olc.getC_OLCand_ID(), trxName);
-		invoiceCandDAO.invalidateCands(ics);
+		invoiceCandDAO.invalidateCandsThatReference(TableRecordReference.of(model));
 	}
 
 	@Override
@@ -289,13 +280,13 @@ public class C_OLCand_Handler extends AbstractInvoiceCandidateHandler
 		final IOLCandEffectiveValuesBL olCandEffectiveValuesBL = Services.get(IOLCandEffectiveValuesBL.class);
 
 		final Quantity olCandQuantity = Quantity.of(olc.getQty(), olCandEffectiveValuesBL.getC_UOM_Effective(olc));
-		ic.setQtyEntered(olCandQuantity.getAsBigDecimal());
+		ic.setQtyEntered(olCandQuantity.toBigDecimal());
 		ic.setC_UOM_ID(UomId.toRepoId(olCandQuantity.getUomId()));
 
 		final ProductId productId = olCandEffectiveValuesBL.getM_Product_Effective_ID(olc);
 		final Quantity qtyInProductUOM = uomConversionBL.convertToProductUOM(olCandQuantity, productId);
 
-		ic.setQtyOrdered(qtyInProductUOM.getAsBigDecimal());
+		ic.setQtyOrdered(qtyInProductUOM.toBigDecimal());
 	}
 
 	private I_C_OLCand getOLCand(@NonNull final I_C_Invoice_Candidate ic)
@@ -317,6 +308,8 @@ public class C_OLCand_Handler extends AbstractInvoiceCandidateHandler
 	public void setDeliveredData(@NonNull final I_C_Invoice_Candidate ic)
 	{
 		ic.setQtyDelivered(ic.getQtyOrdered()); // when changing this, make sure to threat ProductType.Service specially
+		ic.setQtyDeliveredInUOM(ic.getQtyEntered());
+
 		ic.setDeliveryDate(ic.getDateOrdered());
 	}
 
@@ -325,15 +318,16 @@ public class C_OLCand_Handler extends AbstractInvoiceCandidateHandler
 	{
 		final I_C_OLCand olc = getOLCand(ic);
 		final IPricingResult pricingResult = Services.get(IOLCandBL.class).computePriceActual(
-				olc, 
-				null, 
-				PricingSystemId.NULL, 
+				olc,
+				null,
+				PricingSystemId.NULL,
 				TimeUtil.asLocalDate(olc.getDateCandidate()));
 
 		return PriceAndTax.builder()
 				.priceUOMId(pricingResult.getPriceUomId())
 				.priceActual(pricingResult.getPriceStd())
 				.taxIncluded(pricingResult.isTaxIncluded())
+				.invoicableQtyBasedOn(pricingResult.getInvoicableQtyBasedOn())
 				.build();
 	}
 

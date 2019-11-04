@@ -1176,7 +1176,7 @@ public class HUEditorModel implements IDisposable
 		if (updateHUAllocationsOnSave)
 		{
 			final IHUKeyFactory keyFactory = rootHUKey.getKeyFactory();
-			trxManager.run(new TrxRunnable()
+			trxManager.runInNewTrx(new TrxRunnable()
 			{
 				@Override
 				public void run(final String localTrxName)
@@ -1241,7 +1241,7 @@ public class HUEditorModel implements IDisposable
 	{
 		for (final HUKey huKey : getSelectedHUKeys())
 		{
-			final IQualityInspectionSchedulable qualityInspectionAware = huKey.asQualityInspectionSchedulable().orNull();
+			final IQualityInspectionSchedulable qualityInspectionAware = huKey.asQualityInspectionSchedulable().orElse(null);
 			if (qualityInspectionAware == null)
 			{
 				// skip because it's not supported

@@ -7,6 +7,7 @@ import org.adempiere.ad.modelvalidator.annotations.Interceptor;
 import org.adempiere.ad.modelvalidator.annotations.ModelChange;
 import org.adempiere.exceptions.AdempiereException;
 import org.adempiere.model.InterfaceWrapperHelper;
+import org.adempiere.util.lang.impl.TableRecordReference;
 import org.compiere.Adempiere;
 import org.compiere.model.I_C_Customer_Retention;
 import org.compiere.model.ModelValidator;
@@ -61,7 +62,7 @@ import de.metas.util.Check;
 import de.metas.util.Services;
 
 @Interceptor(I_C_Order.class)
-@Component("de.metas.contracts.interceptor.C_Order")
+@Component
 public class C_Order
 {
 	private static final Logger logger = LogManager.getLogger(C_Order.class);
@@ -78,7 +79,7 @@ public class C_Order
 
 		for (final I_C_OrderLine ol : orderDAO.retrieveOrderLines(order, I_C_OrderLine.class))
 		{
-			for (final I_C_Invoice_Candidate icOfOl : invoiceCandDB.retrieveReferencing(ol))
+			for (final I_C_Invoice_Candidate icOfOl : invoiceCandDB.retrieveReferencing(TableRecordReference.of(ol)))
 			{
 				if (icOfOl.isToClear())
 				{

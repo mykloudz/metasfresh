@@ -109,7 +109,7 @@ final class OrderLinePriceCalculator
 		if (!pricingResult.isCalculated())
 		{
 			throw new ProductNotOnPriceListException(pricingCtx, orderLine.getLine())
-					.setParameter("pricingResult", pricingResult);
+			.setParameter("pricingResult", pricingResult);
 		}
 
 		PriceAndDiscount priceAndDiscount = extractPriceAndDiscount(pricingResult, pricingCtx.getSoTrx());
@@ -139,6 +139,7 @@ final class OrderLinePriceCalculator
 		//
 		// Prices
 		priceAndDiscount.applyTo(orderLine);
+		orderLine.setInvoicableQtyBasedOn(pricingResult.getInvoicableQtyBasedOn().getRecordString());
 		orderLine.setPriceList(pricingResult.getPriceList());
 		orderLine.setPriceStd(pricingResult.getPriceStd());
 		orderLine.setPrice_UOM_ID(UomId.toRepoId(pricingResult.getPriceUomId())); // 07090: when setting a priceActual, we also need to specify a PriceUOM
@@ -148,6 +149,7 @@ final class OrderLinePriceCalculator
 		orderLine.setC_Currency_ID(CurrencyId.toRepoId(pricingResult.getCurrencyId()));
 		orderLine.setM_PriceList_Version_ID(PriceListVersionId.toRepoId(pricingResult.getPriceListVersionId()));
 
+		orderLine.setIsCampaignPrice(pricingResult.isCampaignPrice());
 		orderLine.setIsPriceEditable(pricingResult.isPriceEditable());
 		orderLine.setIsDiscountEditable(pricingResult.isDiscountEditable());
 		orderLine.setEnforcePriceLimit(pricingResult.getEnforcePriceLimit().isTrue());
@@ -212,24 +214,24 @@ final class OrderLinePriceCalculator
 			final PricingConditionsBreak pricingConditionsBreak = pricingConditionsResult.getPricingConditionsBreak();
 
 			paymentDiscount = pricingConditionsBreak != null
-					? pricingConditionsBreak.getPaymentDiscountOverrideOrNull().getValue()
-					: null;
+					? pricingConditionsBreak.getPaymentDiscountOverrideOrNull().toBigDecimal()
+							: null;
 
-			if (pricingConditionsBreak != null
-					&& pricingConditionsBreak.getId() != null
-					&& hasSameValues(orderLine, pricingConditionsResult))
-			{
-				final PricingConditionsBreakId pricingConditionsBreakId = pricingConditionsBreak.getId();
-				discountSchemaId = pricingConditionsBreakId.getDiscountSchemaId();
-				discountSchemaBreakId = pricingConditionsBreakId.getDiscountSchemaBreakId();
-				tempPricingConditions = false;
-			}
-			else
-			{
-				discountSchemaId = -1;
-				discountSchemaBreakId = -1;
-				tempPricingConditions = true;
-			}
+					if (pricingConditionsBreak != null
+							&& pricingConditionsBreak.getId() != null
+							&& hasSameValues(orderLine, pricingConditionsResult))
+					{
+						final PricingConditionsBreakId pricingConditionsBreakId = pricingConditionsBreak.getId();
+						discountSchemaId = pricingConditionsBreakId.getDiscountSchemaId();
+						discountSchemaBreakId = pricingConditionsBreakId.getDiscountSchemaBreakId();
+						tempPricingConditions = false;
+					}
+					else
+					{
+						discountSchemaId = -1;
+						discountSchemaBreakId = -1;
+						tempPricingConditions = true;
+					}
 		}
 		else
 		{
@@ -241,7 +243,7 @@ final class OrderLinePriceCalculator
 			tempPricingConditions = false;
 		}
 
-		orderLine.setBase_PricingSystem_ID(PricingSystemId.getRepoId(basePricingSystemId));
+		orderLine.setBase_PricingSystem_ID(PricingSystemId.toRepoId(basePricingSystemId));
 
 		if (!orderLine.isManualPaymentTerm())
 		{
@@ -302,7 +304,7 @@ final class OrderLinePriceCalculator
 		if (request.getQtyOverride() != null)
 		{
 			final Quantity qtyOverride = request.getQtyOverride();
-			qtyInPriceUOM = orderLineBL.convertToPriceUOM(qtyOverride, orderLine).getAsBigDecimal();
+			qtyInPriceUOM = orderLineBL.convertToPriceUOM(qtyOverride, orderLine).toBigDecimal();
 		}
 		else
 		{

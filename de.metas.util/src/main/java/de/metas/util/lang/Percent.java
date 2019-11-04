@@ -5,8 +5,13 @@ import java.math.RoundingMode;
 
 import javax.annotation.Nullable;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonValue;
+
 import de.metas.util.Check;
 import de.metas.util.NumberUtils;
+import lombok.AccessLevel;
+import lombok.Getter;
 import lombok.NonNull;
 import lombok.Value;
 
@@ -35,6 +40,7 @@ import lombok.Value;
 @Value
 public class Percent
 {
+	@JsonCreator
 	public static Percent of(@NonNull final String value)
 	{
 		return of(new BigDecimal(value));
@@ -49,7 +55,7 @@ public class Percent
 		{
 			return ZERO;
 		}
-		else if (ONE_HUNDRED.getValue().compareTo(value) == 0)
+		else if (ONE_HUNDRED.toBigDecimal().compareTo(value) == 0)
 		{
 			return ONE_HUNDRED;
 		}
@@ -122,13 +128,13 @@ public class Percent
 		return Percent.of(percentValue);
 	}
 
-	public static BigDecimal getValueOrNull(@Nullable final Percent paymentDiscountOverrideOrNull)
+	public static BigDecimal toBigDecimalOrNull(@Nullable final Percent paymentDiscountOverrideOrNull)
 	{
 		if (paymentDiscountOverrideOrNull == null)
 		{
 			return null;
 		}
-		return paymentDiscountOverrideOrNull.getValue();
+		return paymentDiscountOverrideOrNull.toBigDecimal();
 	}
 
 	private static final BigDecimal ONE_HUNDRED_VALUE = BigDecimal.valueOf(100);
@@ -138,6 +144,7 @@ public class Percent
 
 	public static final Percent ZERO = new Percent(BigDecimal.ZERO);
 
+	@Getter(AccessLevel.NONE)
 	private final BigDecimal value;
 
 	private Percent(@NonNull final BigDecimal valueAsBigDecimal)
@@ -146,7 +153,8 @@ public class Percent
 		this.value = NumberUtils.stripTrailingDecimalZeros(valueAsBigDecimal);
 	}
 
-	public BigDecimal getValueAsBigDecimal()
+	@JsonValue
+	public BigDecimal toBigDecimal()
 	{
 		return value;
 	}
@@ -213,9 +221,12 @@ public class Percent
 	}
 
 	/**
+	 * Example:
+	 * <li>{@code Percent.of(ONE).computePercentageOf(new BigDecimal("200"))} returns {@code 2}.
+	 *
 	 * @param precision scale of the result; may be less than the scale of the given {@code base}
 	 */
-	public BigDecimal multiply(@NonNull final BigDecimal base, final int precision)
+	public BigDecimal computePercentageOf(@NonNull final BigDecimal base, final int precision)
 	{
 		Check.assumeGreaterOrEqualToZero(precision, "precision");
 
@@ -267,7 +278,7 @@ public class Percent
 	}
 
 	/**
-	 * Example: {@code Percent.of(TEN).subtractFromBase(new BigDecimal("100"))} equals to 90
+	 * Example: {@code Percent.of(TEN).subtractFromBase(new BigDecimal("100"), 0)} equals to 90
 	 */
 	public BigDecimal subtractFromBase(@NonNull final BigDecimal base, final int precision)
 	{
@@ -303,7 +314,7 @@ public class Percent
 	 */
 	public Percent roundToHalf(@NonNull final RoundingMode roundingMode)
 	{
-		final BigDecimal newPercentValue = getValue()
+		final BigDecimal newPercentValue = toBigDecimal()
 				.multiply(TWO_VALUE)
 				.setScale(0, roundingMode)
 				.divide(TWO_VALUE)

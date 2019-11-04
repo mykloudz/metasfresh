@@ -50,7 +50,7 @@ import lombok.NonNull;
  * #L%
  */
 @Interceptor(I_M_Inventory.class)
-@Component("de.metas.handlingunits.inventory.interceptor.M_Inventory")
+@Component
 public class M_Inventory
 {
 	private InventoryLineRecordService inventoryLineRecordService;
@@ -103,10 +103,11 @@ public class M_Inventory
 			throw new HUException("@NotFound@ @Snapshot_UUID@ (" + inventory + ")");
 		}
 
+		final InventoryId inventoryId = InventoryId.ofRepoId(inventory.getM_Inventory_ID());
+
 		//
 		// restore HUs from snapshots
 		{
-			final InventoryId inventoryId = InventoryId.ofRepoId(inventory.getM_Inventory_ID());
 			final List<Integer> topLevelHUIds = inventoryDAO.retrieveLinesForInventoryId(inventoryId, I_M_InventoryLine.class)
 					.stream()
 					.map(I_M_InventoryLine::getM_HU_ID)
@@ -126,7 +127,7 @@ public class M_Inventory
 		{
 			final IDocumentBL docActionBL = Services.get(IDocumentBL.class);
 			Services.get(IMovementDAO.class)
-					.retrieveMovementsForInventoryQuery(inventory.getM_Inventory_ID())
+					.retrieveMovementsForInventoryQuery(inventoryId)
 					.addEqualsFilter(I_M_Inventory.COLUMNNAME_DocStatus, X_M_Inventory.DOCSTATUS_Completed)
 					.create()
 					.stream()

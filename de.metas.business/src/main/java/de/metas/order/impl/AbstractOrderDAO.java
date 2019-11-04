@@ -88,7 +88,7 @@ public abstract class AbstractOrderDAO implements IOrderDAO
 	}
 
 	@Override
-	public <T extends I_C_OrderLine> T getOrderLineById(@NonNull final OrderLineId orderLineId, @NonNull final Class<T> modelClass)
+	public <T extends org.compiere.model.I_C_OrderLine> T getOrderLineById(@NonNull final OrderLineId orderLineId, @NonNull final Class<T> modelClass)
 	{
 		return InterfaceWrapperHelper.load(orderLineId.getRepoId(), modelClass);
 	}
@@ -249,7 +249,7 @@ public abstract class AbstractOrderDAO implements IOrderDAO
 	{
 		return Services.get(IQueryBL.class)
 				.createQueryBuilder(I_C_Order.class)
-				.addEqualsFilter(I_C_Order.COLUMN_C_BPartner_ID, bpartnerId)
+				.addEqualsFilter(I_C_Order.COLUMNNAME_C_BPartner_ID, bpartnerId)
 				.create()
 				.listIds(OrderId::ofRepoId)
 				.stream();

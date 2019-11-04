@@ -1,8 +1,7 @@
 package de.metas.material.dispo.service.candidatechange.handler;
 
-import static de.metas.material.event.EventTestHelper.CLIENT_ID;
+import static de.metas.material.event.EventTestHelper.CLIENT_AND_ORG_ID;
 import static de.metas.material.event.EventTestHelper.NOW;
-import static de.metas.material.event.EventTestHelper.ORG_ID;
 import static de.metas.material.event.EventTestHelper.PRODUCT_ID;
 import static de.metas.material.event.EventTestHelper.STORAGE_ATTRIBUTES_KEY;
 import static de.metas.material.event.EventTestHelper.WAREHOUSE_ID;
@@ -16,10 +15,11 @@ import java.util.function.Consumer;
 
 import org.adempiere.test.AdempiereTestHelper;
 import org.adempiere.test.AdempiereTestWatcher;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TestWatcher;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mockito;
 
 import de.metas.material.dispo.commons.DispoTestUtils;
 import de.metas.material.dispo.commons.RepositoryTestHelper;
@@ -37,11 +37,9 @@ import de.metas.material.event.PostMaterialEventService;
 import de.metas.material.event.commons.MaterialDescriptor;
 import de.metas.material.event.commons.SupplyRequiredDescriptor;
 import de.metas.material.event.supplyrequired.SupplyRequiredEvent;
+import de.metas.organization.ClientAndOrgId;
 import de.metas.util.time.SystemTime;
 import lombok.NonNull;
-import mockit.Expectations;
-import mockit.Mocked;
-import mockit.Verifications;
 
 /*
  * #%L
@@ -65,27 +63,23 @@ import mockit.Verifications;
  * #L%
  */
 
+@ExtendWith(AdempiereTestWatcher.class)
 public class DemandCandiateHandlerTest
 {
-	/** Watches the current tests and dumps the database to console in case of failure */
-	@Rule
-	public final TestWatcher testWatcher = new AdempiereTestWatcher();
-
-	@Mocked
 	private PostMaterialEventService postMaterialEventService;
-
 	private DemandCandiateHandler demandCandidateHandler;
-
-	@Mocked
 	private AvailableToPromiseRepository availableToPromiseRepository;
 
-	@Before
+	@BeforeEach
 	public void init()
 	{
 		AdempiereTestHelper.get().init();
 
 		final CandidateRepositoryWriteService candidateRepositoryWriteService = new CandidateRepositoryWriteService();
 		final CandidateRepositoryRetrieval candidateRepositoryRetrieval = new CandidateRepositoryRetrieval();
+
+		postMaterialEventService = Mockito.mock(PostMaterialEventService.class);
+		availableToPromiseRepository = Mockito.spy(AvailableToPromiseRepository.class);
 
 		final StockCandidateService stockCandidateService = new StockCandidateService(
 				candidateRepositoryRetrieval,
@@ -151,33 +145,35 @@ public class DemandCandiateHandlerTest
 	{
 		final AvailableToPromiseMultiQuery query = AvailableToPromiseMultiQuery.forDescriptorAndAllPossibleBPartnerIds(materialDescriptor);
 
-		// @formatter:off
-		new Expectations()
-		{{
-			availableToPromiseRepository.retrieveAvailableStockQtySum(query);
-			times = 1;
-			result = new BigDecimal(quantity);
-		}}; // @formatter:on
+		Mockito.doReturn(new BigDecimal(quantity))
+				.when(availableToPromiseRepository)
+				.retrieveAvailableStockQtySum(query);
+//		// @formatter:off
+//		new Expectations()
+//		{{
+//			availableToPromiseRepository.retrieveAvailableStockQtySum(query);
+//			times = 1;
+//			result = new BigDecimal(quantity);
+//		}}; // @formatter:on
 	}
 
 	private void assertDemandEventWasFiredWithQuantity(@NonNull final String expectedQty)
 	{
-		// @formatter:off
-		new Verifications()
-		{{
-			MaterialEvent event;
-			postMaterialEventService.postEventAfterNextCommit(event = withCapture());
+		final ArgumentCaptor<MaterialEvent> eventCaptor = ArgumentCaptor.forClass(MaterialEvent.class);
+		Mockito.verify(postMaterialEventService)
+				.postEventAfterNextCommit(eventCaptor.capture());
 
-			assertThat(event).isInstanceOf(SupplyRequiredEvent.class);
-			final SupplyRequiredEvent materialDemandEvent = (SupplyRequiredEvent)event;
-			final SupplyRequiredDescriptor supplyRequiredDescriptor = materialDemandEvent.getSupplyRequiredDescriptor();
-			assertThat(supplyRequiredDescriptor).isNotNull();
+		final MaterialEvent event = eventCaptor.getValue();
 
-			final MaterialDescriptor materialDescriptorOfEvent = supplyRequiredDescriptor.getMaterialDescriptor();
-			assertThat(materialDescriptorOfEvent.getProductId()).isEqualTo(PRODUCT_ID);
-			assertThat(materialDescriptorOfEvent.getWarehouseId()).isEqualTo(WAREHOUSE_ID);
-			assertThat(materialDescriptorOfEvent.getQuantity()).isEqualByComparingTo(expectedQty);
-		}}; // @formatter:on
+		assertThat(event).isInstanceOf(SupplyRequiredEvent.class);
+		final SupplyRequiredEvent materialDemandEvent = (SupplyRequiredEvent)event;
+		final SupplyRequiredDescriptor supplyRequiredDescriptor = materialDemandEvent.getSupplyRequiredDescriptor();
+		assertThat(supplyRequiredDescriptor).isNotNull();
+
+		final MaterialDescriptor materialDescriptorOfEvent = supplyRequiredDescriptor.getMaterialDescriptor();
+		assertThat(materialDescriptorOfEvent.getProductId()).isEqualTo(PRODUCT_ID);
+		assertThat(materialDescriptorOfEvent.getWarehouseId()).isEqualTo(WAREHOUSE_ID);
+		assertThat(materialDescriptorOfEvent.getQuantity()).isEqualByComparingTo(expectedQty);
 	}
 
 	@Test
@@ -199,16 +195,19 @@ public class DemandCandiateHandlerTest
 		assertThat(stockCandidate.getQty()).isEqualByComparingTo("-10");
 		assertThat(stockCandidate.getMD_Candidate_Parent_ID()).isEqualTo(unrelatedTransactionCandidate.getMD_Candidate_ID());
 
-		// @formatter:off verify that no event was fired
-		new Verifications()
-		{{
-			postMaterialEventService.postEventNow((MaterialEvent)any); times = 0;
-		}}; // @formatter:on
+		Mockito.verify(postMaterialEventService, Mockito.times(0))
+				.postEventNow(Mockito.any());
+//		// @formatter:off verify that no event was fired
+//		new Verifications()
+//		{{
+//			postMaterialEventService.postEventNow((MaterialEvent)any); times = 0;
+//		}}; // @formatter:on
 	}
 
 	private static Candidate createCandidateWithType(@NonNull final CandidateType type)
 	{
 		final Candidate candidate = Candidate.builder()
+				.clientAndOrgId(ClientAndOrgId.ofClientAndOrg(1, 1))
 				.type(type)
 				.materialDescriptor(MaterialDescriptor.builder()
 						.productDescriptor(createProductDescriptor())
@@ -243,8 +242,7 @@ public class DemandCandiateHandlerTest
 
 		final Candidate candidate = Candidate.builder()
 				.type(CandidateType.DEMAND)
-				.clientId(CLIENT_ID)
-				.orgId(ORG_ID)
+				.clientAndOrgId(CLIENT_AND_ORG_ID)
 				.materialDescriptor(materialDescriptor)
 				.build();
 
@@ -285,8 +283,7 @@ public class DemandCandiateHandlerTest
 				.build();
 		final Candidate candidate = Candidate.builder()
 				.type(CandidateType.DEMAND)
-				.clientId(CLIENT_ID)
-				.orgId(ORG_ID)
+				.clientAndOrgId(CLIENT_AND_ORG_ID)
 				.materialDescriptor(materialDescriptor)
 				.build();
 
@@ -357,8 +354,7 @@ public class DemandCandiateHandlerTest
 				.build();
 		final Candidate candidate = Candidate.builder()
 				.type(CandidateType.DEMAND)
-				.clientId(CLIENT_ID)
-				.orgId(ORG_ID)
+				.clientAndOrgId(CLIENT_AND_ORG_ID)
 				.materialDescriptor(materialDescriptor)
 				.build();
 

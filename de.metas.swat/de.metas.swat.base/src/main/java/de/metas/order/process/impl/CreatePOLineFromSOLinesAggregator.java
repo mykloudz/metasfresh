@@ -93,7 +93,7 @@ public class CreatePOLineFromSOLinesAggregator extends MapReduceAggregator<I_C_O
 		}
 		catch (final Throwable t)
 		{
-			Loggables.get().addLog("@Error@: " + t);
+			Loggables.addLog("@Error@: " + t);
 			throw AdempiereException.wrapIfNeeded(t);
 		}
 
@@ -117,7 +117,6 @@ public class CreatePOLineFromSOLinesAggregator extends MapReduceAggregator<I_C_O
 
 		final I_C_OrderLine purchaseOrderLine = orderLineBL.createOrderLine(purchaseOrder);
 
-		salesOrderLine.getC_Charge();
 		purchaseOrderLine.setC_Charge_ID(salesOrderLine.getC_Charge_ID());
 
 		final ProductId productId = ProductId.ofRepoIdOrNull(salesOrderLine.getM_Product_ID());
@@ -127,7 +126,7 @@ public class CreatePOLineFromSOLinesAggregator extends MapReduceAggregator<I_C_O
 			// we use the product's uom, i.e. the internal stocking uom, because
 			// 1. we can assume to have an UOM conversion from any sales order line's UOM.
 			// 2. that way we can use the "internal-UOMs" Qty also for QtyEntered in addItemToGroup()
-			final UomId uomId = Services.get(IProductBL.class).getStockingUOMId(productId);
+			final UomId uomId = Services.get(IProductBL.class).getStockUOMId(productId);
 			purchaseOrderLine.setC_UOM_ID(uomId.getRepoId());
 		}
 

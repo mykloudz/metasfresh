@@ -6,6 +6,7 @@ import static org.adempiere.model.InterfaceWrapperHelper.newInstance;
 import static org.adempiere.model.InterfaceWrapperHelper.save;
 
 import java.math.BigDecimal;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -21,11 +22,13 @@ import org.adempiere.mm.attributes.api.IAttributeSetInstanceAwareFactoryService;
 import org.adempiere.mm.attributes.api.IAttributeSetInstanceBL;
 import org.adempiere.model.InterfaceWrapperHelper;
 import org.adempiere.util.LegacyAdapters;
+import org.adempiere.warehouse.WarehouseId;
 import org.compiere.model.I_AD_Note;
 import org.compiere.model.MNote;
 import org.compiere.model.MOrderLine;
 import org.compiere.model.X_C_Order;
 import org.compiere.util.Env;
+import org.compiere.util.TimeUtil;
 import org.slf4j.Logger;
 
 import de.metas.adempiere.model.I_AD_User;
@@ -36,24 +39,32 @@ import de.metas.bpartner.BPartnerLocationId;
 import de.metas.bpartner.service.BPartnerInfo;
 import de.metas.currency.CurrencyPrecision;
 import de.metas.currency.ICurrencyDAO;
+import de.metas.document.DocTypeId;
 import de.metas.document.engine.DocStatus;
 import de.metas.document.engine.IDocumentBL;
+import de.metas.freighcost.FreightCostRule;
 import de.metas.i18n.IMsgBL;
 import de.metas.interfaces.I_C_OrderLine;
 import de.metas.logging.LogManager;
 import de.metas.money.CurrencyId;
+import de.metas.order.DeliveryRule;
+import de.metas.order.DeliveryViaRule;
 import de.metas.order.IOrderLineBL;
+import de.metas.order.InvoiceRule;
 import de.metas.ordercandidate.model.I_C_OLCand;
 import de.metas.ordercandidate.model.I_C_Order_Line_Alloc;
 import de.metas.ordercandidate.spi.IOLCandListener;
+import de.metas.payment.PaymentRule;
+import de.metas.payment.paymentterm.PaymentTermId;
 import de.metas.pricing.PricingSystemId;
 import de.metas.pricing.attributebased.IAttributePricingBL;
 import de.metas.pricing.attributebased.IProductPriceAware;
+import de.metas.shipping.ShipperId;
+import de.metas.user.UserId;
 import de.metas.user.api.IUserDAO;
 import de.metas.util.Check;
 import de.metas.util.ILoggable;
 import de.metas.util.Loggables;
-import de.metas.util.NullLoggable;
 import de.metas.util.Services;
 import lombok.Builder;
 import lombok.NonNull;
@@ -99,7 +110,7 @@ class OLCandOrderFactory
 	// Parameters
 	private final OLCandOrderDefaults orderDefaults;
 	private final Properties ctx;
-	private final int userInChargeId;
+	private final UserId userInChargeId;
 	private final ILoggable loggable;
 	private final int olCandProcessorId;
 	private final IOLCandListener olCandListeners;
@@ -114,14 +125,14 @@ class OLCandOrderFactory
 	private OLCandOrderFactory(
 			@NonNull final OLCandOrderDefaults orderDefaults,
 			final int olCandProcessorId,
-			final int userInChargeId,
+			final UserId userInChargeId,
 			final ILoggable loggable,
 			final IOLCandListener olCandListeners)
 	{
 		this.orderDefaults = orderDefaults;
 		ctx = Env.getCtx();
-		this.userInChargeId = userInChargeId;
-		this.loggable = loggable != null ? loggable : NullLoggable.instance;
+		this.userInChargeId = userInChargeId != null ? userInChargeId : UserId.SYSTEM;
+		this.loggable = loggable != null ? loggable : Loggables.nop();
 
 		Check.assume(olCandProcessorId > 0, "olCandProcessorId > 0");
 		this.olCandProcessorId = olCandProcessorId;
@@ -135,39 +146,35 @@ class OLCandOrderFactory
 		final I_C_Order order = newInstance(I_C_Order.class);
 		order.setDocStatus(DocStatus.Drafted.getCode());
 		order.setDocAction(X_C_Order.DOCACTION_Complete);
-
-		// use the values from 'processor
-		order.setDeliveryRule(orderDefaults.getDeliveryRule());
-		order.setDeliveryViaRule(orderDefaults.getDeliveryViaRule());
-		order.setM_Shipper_ID(orderDefaults.getShipperId());
-
-		order.setFreightCostRule(orderDefaults.getFreightCostRule());
-		order.setPaymentRule(orderDefaults.getPaymentRule());
-		order.setC_PaymentTerm_ID(orderDefaults.getPaymentTermId());
-
-		order.setInvoiceRule(orderDefaults.getInvoiceRule());
-		order.setC_DocTypeTarget_ID(orderDefaults.getDocTypeTargetId());
-		order.setM_Warehouse_ID(orderDefaults.getWarehouseId());
-
+	
+		//
+		// use values from orderDefaults when the order candidate doesn't have such values
+		order.setC_DocTypeTarget_ID(DocTypeId.toRepoId(orderDefaults.getDocTypeTargetId()));
+		order.setM_Warehouse_ID(WarehouseId.toRepoId(orderDefaults.getWarehouseId()));
+	
 		// use the values from 'olCand'
 		order.setAD_Org_ID(candidateOfGroup.getAD_Org_ID());
-
+	
 		final BPartnerInfo bpartner = candidateOfGroup.getBPartnerInfo();
 		order.setC_BPartner_ID(BPartnerId.toRepoId(bpartner.getBpartnerId()));
 		order.setC_BPartner_Location_ID(BPartnerLocationId.toRepoId(bpartner.getBpartnerLocationId()));
 		order.setAD_User_ID(BPartnerContactId.toRepoId(bpartner.getContactId()));
-
+	
 		// if the olc has no value set, we are not falling back here!
 		final BPartnerInfo billBPartner = candidateOfGroup.getBillBPartnerInfo();
 		order.setBill_BPartner_ID(BPartnerId.toRepoId(billBPartner.getBpartnerId()));
 		order.setBill_Location_ID(BPartnerLocationId.toRepoId(billBPartner.getBpartnerLocationId()));
 		order.setBill_User_ID(BPartnerContactId.toRepoId(billBPartner.getContactId()));
-
+	
+		final Timestamp dateDoc = TimeUtil.asTimestamp(candidateOfGroup.getDateDoc());
+		order.setDateOrdered(dateDoc);
+		order.setDateAcct(dateDoc);
+	
 		// task 06269 (see KurzBeschreibung)
 		// note that C_Order.DatePromised is propagated to C_OrderLine.DatePromised in MOrder.afterSave() and MOrderLine.setOrder()
 		// also note that for now we set datepromised only in the header, so different DatePromised values result in differnt orders, and all ol have the same datepromised
-		order.setDatePromised(candidateOfGroup.getDatePromised());
-
+		order.setDatePromised(TimeUtil.asTimestamp(candidateOfGroup.getDatePromised()));
+	
 		// if the olc has no value set, we are not falling back here!
 		// 05617
 		final BPartnerInfo dropShipBPartner = candidateOfGroup.getDropShipBPartnerInfo();
@@ -175,26 +182,32 @@ class OLCandOrderFactory
 		order.setDropShip_Location_ID(BPartnerLocationId.toRepoId(dropShipBPartner.getBpartnerLocationId()));
 		final boolean isDropShip = dropShipBPartner != null || dropShipBPartner.getBpartnerLocationId() != null;
 		order.setIsDropShip(isDropShip);
-
+	
 		final BPartnerInfo handOverBPartner = candidateOfGroup.getHandOverBPartnerInfo();
 		order.setHandOver_Partner_ID(BPartnerId.toRepoId(handOverBPartner.getBpartnerId()));
 		order.setHandOver_Location_ID(BPartnerLocationId.toRepoId(handOverBPartner.getBpartnerLocationId()));
 		order.setIsUseHandOver_Location(handOverBPartner.getBpartnerLocationId() != null);
-
+	
 		if (candidateOfGroup.getC_Currency_ID() > 0)
 		{
 			order.setC_Currency_ID(candidateOfGroup.getC_Currency_ID());
 		}
-
+	
 		order.setPOReference(candidateOfGroup.getPOReference());
-
-		// pricing-system is not mandatory in 'processor', so we set it either from the processor *or* from the bpartner or BP-GRoup
-		order.setM_PricingSystem_ID(PricingSystemId.getRepoId(candidateOfGroup.getPricingSystemId()));
-
+	
+		order.setDeliveryRule(DeliveryRule.toCodeOrNull(candidateOfGroup.getDeliveryRule()));
+		order.setDeliveryViaRule(DeliveryViaRule.toCodeOrNull(candidateOfGroup.getDeliveryViaRule()));
+		order.setFreightCostRule(FreightCostRule.toCodeOrNull(candidateOfGroup.getFreightCostRule()));
+		order.setInvoiceRule(InvoiceRule.toCodeOrNull(candidateOfGroup.getInvoiceRule()));
+		order.setPaymentRule(PaymentRule.toCodeOrNull(candidateOfGroup.getPaymentRule()));
+		order.setC_PaymentTerm_ID(PaymentTermId.toRepoId(candidateOfGroup.getPaymentTermId()));
+		order.setM_PricingSystem_ID(PricingSystemId.toRepoId(candidateOfGroup.getPricingSystemId()));
+		order.setM_Shipper_ID(ShipperId.toRepoId(candidateOfGroup.getShipperId()));
+	
 		// task 08926: set the data source; this shall trigger IsEdiEnabled to be set to true, if the data source is "EDI"
 		final de.metas.order.model.I_C_Order orderWithDataSource = InterfaceWrapperHelper.create(order, de.metas.order.model.I_C_Order.class);
 		orderWithDataSource.setAD_InputDataSource_ID(candidateOfGroup.getAD_InputDataSource_ID());
-
+	
 		save(order);
 		return order;
 	}
@@ -266,7 +279,7 @@ class OLCandOrderFactory
 			currentOrderLine = newOrderLine(candidate);
 		}
 
-		currentOrderLine.setM_Warehouse_Dest_ID(candidate.getM_Warehouse_Dest_ID());
+		currentOrderLine.setM_Warehouse_Dest_ID(WarehouseId.toRepoId(candidate.getWarehouseDestId()));
 		currentOrderLine.setProductDescription(candidate.getProductDescription()); // 08626: Propagate ProductDescription to C_OrderLine
 		currentOrderLine.setLine(candidate.getLine());
 
@@ -281,6 +294,8 @@ class OLCandOrderFactory
 		//
 		// Prices
 		{
+			currentOrderLine.setInvoicableQtyBasedOn(candidate.getInvoicableQtyBasedOn().getRecordString());
+
 			currentOrderLine.setIsManualPrice(candidate.isManualPrice());
 			if (candidate.isManualPrice())
 			{
@@ -332,12 +347,13 @@ class OLCandOrderFactory
 		candidates.add(candidate);
 	}
 
-	private I_C_OrderLine newOrderLine(final OLCand candToProcess)
+	private I_C_OrderLine newOrderLine(@NonNull final OLCand candToProcess)
 	{
 		if (order == null)
 		{
 			order = newOrder(candToProcess);
 		}
+
 		final I_C_OrderLine orderLine = create(new MOrderLine(LegacyAdapters.convertToPO(order)), I_C_OrderLine.class);
 
 		if (candToProcess.getC_Charge_ID() > 0)
@@ -358,6 +374,10 @@ class OLCandOrderFactory
 
 		// make sure that both records have their independent ASI to avoid unwanted side effects if the order line's ASI is altered.
 		attributeSetInstanceBL.cloneASI(orderLine, candToProcess);
+
+		orderLine.setPresetDateInvoiced(TimeUtil.asTimestamp(candToProcess.getPresetDateInvoiced()));
+		orderLine.setPresetDateShipped(TimeUtil.asTimestamp(candToProcess.getPresetDateShipped()));
+
 		return orderLine;
 	}
 
@@ -389,7 +409,7 @@ class OLCandOrderFactory
 
 	private void markAsError(final OLCand olCand, final Exception ex)
 	{
-		Loggables.get().addLog("Caught exception while processing {}; message={}; exception={}", olCand, ex.getLocalizedMessage(), ex);
+		Loggables.addLog("Caught exception while processing {}; message={}; exception={}", olCand, ex.getLocalizedMessage(), ex);
 		logger.warn("Caught exception while processing {}", olCand, ex);
 
 		final I_AD_Note note = createOLCandErrorNote(olCand, ex);
@@ -405,7 +425,7 @@ class OLCandOrderFactory
 
 	private I_AD_Note createOrderCompleteErrorNote(final String errorMsg)
 	{
-		final I_AD_User user = userDAO.retrieveUserOrNull(ctx, userInChargeId);
+		final I_AD_User user = userDAO.getById(userInChargeId);
 
 		final String candidateIdsAsString = candidates.stream()
 				.map(OLCand::getId)
@@ -413,7 +433,7 @@ class OLCandOrderFactory
 				.collect(Collectors.joining(", "));
 		final String adLanguage = user.getC_BPartner().getAD_Language();
 
-		final MNote note = new MNote(ctx, IOLCandBL.MSG_OL_CAND_PROCESSOR_PROCESSING_ERROR_0P, userInChargeId, ITrx.TRXNAME_None);
+		final MNote note = new MNote(ctx, IOLCandBL.MSG_OL_CAND_PROCESSOR_PROCESSING_ERROR_0P, userInChargeId.getRepoId(), ITrx.TRXNAME_None);
 		note.setClientOrg(user.getAD_Client_ID(), user.getAD_Org_ID());
 		note.setReference(errorMsg);
 		note.setTextMsg(msgBL.getMsg(adLanguage, MSG_OL_CAND_PROCESSOR_PROCESSING_ERROR_DESC_1P, new Object[] { candidateIdsAsString }));
@@ -424,9 +444,9 @@ class OLCandOrderFactory
 
 	private I_AD_Note createOLCandErrorNote(final OLCand olCand, final Exception ex)
 	{
-		final I_AD_User user = userDAO.retrieveUserOrNull(ctx, userInChargeId);
+		final I_AD_User user = userDAO.getById(userInChargeId);
 
-		final MNote note = new MNote(ctx, IOLCandBL.MSG_OL_CAND_PROCESSOR_PROCESSING_ERROR_0P, userInChargeId, ITrx.TRXNAME_None);
+		final MNote note = new MNote(ctx, IOLCandBL.MSG_OL_CAND_PROCESSOR_PROCESSING_ERROR_0P, userInChargeId.getRepoId(), ITrx.TRXNAME_None);
 		note.setRecord(olCand.toTableRecordReference());
 		note.setClientOrg(user.getAD_Client_ID(), user.getAD_Org_ID());
 		note.setTextMsg(ex.getLocalizedMessage());

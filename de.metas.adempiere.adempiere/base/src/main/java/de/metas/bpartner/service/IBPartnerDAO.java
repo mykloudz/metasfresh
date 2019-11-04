@@ -31,6 +31,8 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Stream;
 
+import javax.annotation.Nullable;
+
 import org.compiere.model.I_AD_User;
 import org.compiere.model.I_C_BP_Relation;
 import org.compiere.model.I_C_BPartner;
@@ -43,6 +45,8 @@ import de.metas.bpartner.BPartnerContactId;
 import de.metas.bpartner.BPartnerId;
 import de.metas.bpartner.BPartnerLocationId;
 import de.metas.bpartner.BPartnerType;
+import de.metas.bpartner.GLN;
+import de.metas.bpartner.GeographicalCoordinatesWithBPartnerLocationId;
 import de.metas.email.EMailAddress;
 import de.metas.lang.SOTrx;
 import de.metas.location.CountryId;
@@ -52,6 +56,7 @@ import de.metas.user.UserId;
 import de.metas.util.ISingletonService;
 import de.metas.util.rest.ExternalId;
 import lombok.Builder;
+import lombok.Builder.Default;
 import lombok.NonNull;
 import lombok.Value;
 
@@ -71,17 +76,15 @@ public interface IBPartnerDAO extends ISingletonService
 
 	<T extends I_C_BPartner> T getById(BPartnerId bpartnerId, Class<T> modelClass);
 
-	BPartnerId getBPartnerIdByValue(final String bpartnerValue);
+	BPartnerId getBPartnerIdByValue(String bpartnerValue);
+
+	Optional<BPartnerId> getBPartnerIdBySalesPartnerCode(String salesPartnerCode);
 
 	I_C_BPartner getByIdInTrx(BPartnerId bpartnerId);
 
 	/**
 	 * Retrieve {@link I_C_BPartner} assigned to given organization
 	 *
-	 * @param ctx
-	 * @param orgId
-	 * @param clazz
-	 * @param trxName
 	 * @return {@link I_C_BPartner}; never return null
 	 * @throws OrgHasNoBPartnerLinkException if no partner was found
 	 */
@@ -91,7 +94,7 @@ public interface IBPartnerDAO extends ISingletonService
 
 	Optional<BPartnerLocationId> getBPartnerLocationIdByExternalId(BPartnerId bpartnerId, ExternalId externalId);
 
-	Optional<BPartnerLocationId> getBPartnerLocationIdByGln(BPartnerId bpartnerId, String gln);
+	Optional<BPartnerLocationId> getBPartnerLocationIdByGln(BPartnerId bpartnerId, GLN gln);
 
 	I_C_BPartner_Location getBPartnerLocationById(BPartnerLocationId bpartnerLocationId);
 
@@ -106,6 +109,8 @@ public interface IBPartnerDAO extends ISingletonService
 	Set<CountryId> retrieveBPartnerLocationCountryIds(BPartnerId bpartnerId);
 
 	CountryId retrieveBPartnerLocationCountryId(BPartnerLocationId bpLocationId);
+
+	CountryId retrieveBPartnerLocationCountryIdInTrx(BPartnerLocationId bpLocationId);
 
 	/**
 	 * @return Contacts of the partner, ordered by ad_user_ID, ascending
@@ -123,25 +128,9 @@ public interface IBPartnerDAO extends ISingletonService
 
 	EMailAddress getContactEMail(BPartnerContactId contactId);
 
-	/**
-	 * Returns the <code>M_PricingSystem_ID</code> to use for a given bPartner.
-	 *
-	 *
-	 * @param ctx
-	 * @param bPartnerId the ID of the BPartner for which we need the pricing system id
-	 * @param soTrx
-	 *            <ul>
-	 *            <li>if <code>true</code>, then the method first checks <code>C_BPartner.M_PricingSystem_ID</code> , then (if the BPartner has a C_BP_Group_ID) in
-	 *            <code>C_BP_Group.M_PricingSystem_ID</code> and finally (if the C_BPArtner has a AD_Org_ID>0) in <code>AD_OrgInfo.M_PricingSystem_ID</code></li>
-	 *            <li>if <code>false</code></li>, then the method first checks <code>C_BPartner.PO_PricingSystem_ID</code>, then (if the BPartner has a C_BP_Group_ID!) in
-	 *            <code>C_BP_Group.PO_PricingSystem_ID</code>. Note that <code>AD_OrgInfo</code> has currently no <code>PO_PricingSystem_ID</code> column.
-	 *            </ul>
-	 * @param trxName
-	 * @return M_PricingSystem_ID or 0
-	 */
-	PricingSystemId retrievePricingSystemId(Properties ctx, int bPartnerId, SOTrx soTrx, String trxName);
+	PricingSystemId retrievePricingSystemIdOrNullInTrx(BPartnerId bPartnerId, SOTrx soTrx);
 
-	PricingSystemId retrievePricingSystemId(BPartnerId bPartnerId, SOTrx soTrx);
+	PricingSystemId retrievePricingSystemIdOrNull(BPartnerId bPartnerId, SOTrx soTrx);
 
 	ShipperId getShipperId(BPartnerId bpartnerId);
 
@@ -276,6 +265,10 @@ public interface IBPartnerDAO extends ISingletonService
 
 	Optional<BPartnerId> retrieveBPartnerIdBy(BPartnerQuery query);
 
+	ImmutableSet<BPartnerId> retrieveBPartnerIdsBy(BPartnerQuery query);
+
+	BPartnerLocationId retrieveBPartnerLocationId(BPartnerLocationQuery query);
+
 	I_C_BPartner_Location retrieveBPartnerLocation(BPartnerLocationQuery query);
 
 	ImmutableSet<BPartnerId> retrieveAllCustomerIDs();
@@ -295,7 +288,18 @@ public interface IBPartnerDAO extends ISingletonService
 		@NonNull
 		Type type;
 
-		boolean alsoTryRelation;
+		/**
+		 * If {@code false}, then bpartner locations with the given type are preferred, but also a location with another type can be returned.
+		 * {@code true} by default.
+		 */
+		@Default
+		boolean applyTypeStrictly = true;
+
+		/**
+		 * If set, then return the bPartner relation which has this id as {@code C_BPartner_Location_ID} and if not found, fallback to initial location.
+		 */
+		@Nullable
+		BPartnerLocationId relationBPartnerLocationId;
 	}
 
 	BPGroupId getBPGroupIdByBPartnerId(BPartnerId bpartnerId);
@@ -303,4 +307,16 @@ public interface IBPartnerDAO extends ISingletonService
 	Stream<BPartnerId> streamChildBPartnerIds(BPartnerId parentPartnerId);
 
 	List<BPartnerId> getParentsUpToTheTopInTrx(BPartnerId bpartnerId);
+
+	boolean isActionPriceAllowed(BPartnerId bpartnerId);
+
+	boolean pricingSystemBelongsToCustomerForPriceMutation(PricingSystemId pricingSystemId);
+
+	Optional<BPartnerContactId> getBPartnerContactIdBy(BPartnerContactQuery query);
+
+	List<GeographicalCoordinatesWithBPartnerLocationId> getGeoCoordinatesByBPartnerIds(Collection<BPartnerId> bpartnerIds);
+
+	List<GeographicalCoordinatesWithBPartnerLocationId> getGeoCoordinatesByBPartnerLocationIds(Collection<Integer> bpartnerLocationRepoIds);
+
+	BPartnerLocationId retrieveCurrentBillLocationOrNull(BPartnerId partnerId);
 }

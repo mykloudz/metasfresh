@@ -1,5 +1,6 @@
 package de.metas.order.impl;
 
+import static org.adempiere.model.InterfaceWrapperHelper.loadOutOfTrx;
 import static org.adempiere.model.InterfaceWrapperHelper.newInstance;
 import static org.adempiere.model.InterfaceWrapperHelper.translate;
 
@@ -38,6 +39,7 @@ import org.adempiere.mm.attributes.AttributeSetInstanceId;
 import org.adempiere.model.InterfaceWrapperHelper;
 import org.adempiere.service.ISysConfigBL;
 import org.compiere.model.I_AD_Org;
+import org.compiere.model.I_C_Charge;
 import org.compiere.model.I_C_Order;
 import org.compiere.model.I_C_Tax;
 import org.compiere.model.I_C_UOM;
@@ -117,7 +119,7 @@ public class OrderLineBL implements IOrderLineBL
 	private I_C_UOM getStockingUOM(final org.compiere.model.I_C_OrderLine orderLine)
 	{
 		final IProductBL productBL = Services.get(IProductBL.class);
-		return productBL.getStockingUOM(orderLine.getM_Product_ID());
+		return productBL.getStockUOM(orderLine.getM_Product_ID());
 	}
 
 	@Override
@@ -241,7 +243,9 @@ public class OrderLineBL implements IOrderLineBL
 		// In case we have a charge, use the tax category from charge
 		if (orderLine.getC_Charge_ID() > 0)
 		{
-			return TaxCategoryId.ofRepoId(orderLine.getC_Charge().getC_TaxCategory_ID());
+			// TODO get rid of C_Charge from C_OrderLine alltogether
+			final I_C_Charge chargeRecord = loadOutOfTrx(orderLine.getC_Charge_ID(), I_C_Charge.class);
+			return TaxCategoryId.ofRepoId(chargeRecord.getC_TaxCategory_ID());
 		}
 
 		final OrderLinePriceUpdateRequest request = OrderLinePriceUpdateRequest.ofOrderLine(orderLine);
@@ -325,7 +329,7 @@ public class OrderLineBL implements IOrderLineBL
 		final int priceListId = order.getM_PriceList_ID();
 		final CurrencyPrecision netPrecision = Services.get(IPriceListBL.class).getAmountPrecision(PriceListId.ofRepoId(priceListId));
 
-		BigDecimal lineNetAmt = qtyInPriceUOM.getAsBigDecimal().multiply(ol.getPriceActual());
+		BigDecimal lineNetAmt = qtyInPriceUOM.toBigDecimal().multiply(ol.getPriceActual());
 		lineNetAmt = netPrecision.roundIfNeeded(lineNetAmt);
 
 		logger.debug("Setting LineNetAmt={} to {}", lineNetAmt, ol);
@@ -435,7 +439,7 @@ public class OrderLineBL implements IOrderLineBL
 		orderLine.setM_Product_ID(productId.getRepoId());
 		if (setUOM)
 		{
-			final UomId uomId = Services.get(IProductBL.class).getStockingUOMId(productId);
+			final UomId uomId = Services.get(IProductBL.class).getStockUOMId(productId);
 			orderLine.setC_UOM_ID(uomId.getRepoId());
 		}
 
@@ -500,7 +504,7 @@ public class OrderLineBL implements IOrderLineBL
 	public BigDecimal convertQtyEnteredToPriceUOM(@NonNull final org.compiere.model.I_C_OrderLine orderLine)
 	{
 		final Quantity qtyEntered = getQtyEntered(orderLine);
-		return convertToPriceUOM(qtyEntered, orderLine).getAsBigDecimal();
+		return convertToPriceUOM(qtyEntered, orderLine).toBigDecimal();
 	}
 
 	@Override
@@ -637,12 +641,12 @@ public class OrderLineBL implements IOrderLineBL
 		final BigDecimal poCostPrice = orderLine.getPriceCost();
 		if (poCostPrice != null && poCostPrice.signum() != 0)
 		{
-			final UomId productUomId = Services.get(IProductBL.class).getStockingUOMId(productId);
+			final UomId productUomId = Services.get(IProductBL.class).getStockUOMId(productId);
 
 			return ProductPrice.builder()
 					.productId(productId)
 					.uomId(productUomId)
-					.value(Money.of(poCostPrice, currencyId))
+					.money(Money.of(poCostPrice, currencyId))
 					.build();
 		}
 
@@ -658,7 +662,7 @@ public class OrderLineBL implements IOrderLineBL
 			return ProductPrice.builder()
 					.productId(productId)
 					.uomId(priceUomId)
-					.value(Money.of(priceActual, currencyId))
+					.money(Money.of(priceActual, currencyId))
 					.build();
 		}
 
@@ -669,7 +673,7 @@ public class OrderLineBL implements IOrderLineBL
 			return ProductPrice.builder()
 					.productId(productId)
 					.uomId(priceUomId)
-					.value(Money.of(priceActual, currencyId))
+					.money(Money.of(priceActual, currencyId))
 					.build();
 		}
 
@@ -679,7 +683,7 @@ public class OrderLineBL implements IOrderLineBL
 			return ProductPrice.builder()
 					.productId(productId)
 					.uomId(priceUomId)
-					.value(Money.of(priceActual, currencyId))
+					.money(Money.of(priceActual, currencyId))
 					.build();
 		}
 
@@ -689,7 +693,7 @@ public class OrderLineBL implements IOrderLineBL
 		return ProductPrice.builder()
 				.productId(productId)
 				.uomId(priceUomId)
-				.value(Money.of(priceActualWithoutTax, currencyId))
+				.money(Money.of(priceActualWithoutTax, currencyId))
 				.build();
 	}
 

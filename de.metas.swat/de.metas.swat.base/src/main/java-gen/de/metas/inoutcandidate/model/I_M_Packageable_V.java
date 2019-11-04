@@ -32,10 +32,6 @@ public interface I_M_Packageable_V
 	 */
 	public int getAD_Client_ID();
 
-	public org.compiere.model.I_AD_Client getAD_Client();
-
-    /** Column definition for AD_Client_ID */
-    public static final org.adempiere.model.ModelColumn<I_M_Packageable_V, org.compiere.model.I_AD_Client> COLUMN_AD_Client_ID = new org.adempiere.model.ModelColumn<I_M_Packageable_V, org.compiere.model.I_AD_Client>(I_M_Packageable_V.class, "AD_Client_ID", org.compiere.model.I_AD_Client.class);
     /** Column name AD_Client_ID */
     public static final String COLUMNNAME_AD_Client_ID = "AD_Client_ID";
 
@@ -59,12 +55,6 @@ public interface I_M_Packageable_V
 	 */
 	public int getAD_Org_ID();
 
-	public org.compiere.model.I_AD_Org getAD_Org();
-
-	public void setAD_Org(org.compiere.model.I_AD_Org AD_Org);
-
-    /** Column definition for AD_Org_ID */
-    public static final org.adempiere.model.ModelColumn<I_M_Packageable_V, org.compiere.model.I_AD_Org> COLUMN_AD_Org_ID = new org.adempiere.model.ModelColumn<I_M_Packageable_V, org.compiere.model.I_AD_Org>(I_M_Packageable_V.class, "AD_Org_ID", org.compiere.model.I_AD_Org.class);
     /** Column name AD_Org_ID */
     public static final String COLUMNNAME_AD_Org_ID = "AD_Org_ID";
 
@@ -180,12 +170,6 @@ public interface I_M_Packageable_V
 	 */
 	public int getC_BPartner_Customer_ID();
 
-	public org.compiere.model.I_C_BPartner getC_BPartner_Customer();
-
-	public void setC_BPartner_Customer(org.compiere.model.I_C_BPartner C_BPartner_Customer);
-
-    /** Column definition for C_BPartner_Customer_ID */
-    public static final org.adempiere.model.ModelColumn<I_M_Packageable_V, org.compiere.model.I_C_BPartner> COLUMN_C_BPartner_Customer_ID = new org.adempiere.model.ModelColumn<I_M_Packageable_V, org.compiere.model.I_C_BPartner>(I_M_Packageable_V.class, "C_BPartner_Customer_ID", org.compiere.model.I_C_BPartner.class);
     /** Column name C_BPartner_Customer_ID */
     public static final String COLUMNNAME_C_BPartner_Customer_ID = "C_BPartner_Customer_ID";
 
@@ -209,12 +193,6 @@ public interface I_M_Packageable_V
 	 */
 	public int getC_BPartner_Location_ID();
 
-	public org.compiere.model.I_C_BPartner_Location getC_BPartner_Location();
-
-	public void setC_BPartner_Location(org.compiere.model.I_C_BPartner_Location C_BPartner_Location);
-
-    /** Column definition for C_BPartner_Location_ID */
-    public static final org.adempiere.model.ModelColumn<I_M_Packageable_V, org.compiere.model.I_C_BPartner_Location> COLUMN_C_BPartner_Location_ID = new org.adempiere.model.ModelColumn<I_M_Packageable_V, org.compiere.model.I_C_BPartner_Location>(I_M_Packageable_V.class, "C_BPartner_Location_ID", org.compiere.model.I_C_BPartner_Location.class);
     /** Column name C_BPartner_Location_ID */
     public static final String COLUMNNAME_C_BPartner_Location_ID = "C_BPartner_Location_ID";
 
@@ -238,12 +216,6 @@ public interface I_M_Packageable_V
 	 */
 	public int getC_Currency_ID();
 
-	public org.compiere.model.I_C_Currency getC_Currency();
-
-	public void setC_Currency(org.compiere.model.I_C_Currency C_Currency);
-
-    /** Column definition for C_Currency_ID */
-    public static final org.adempiere.model.ModelColumn<I_M_Packageable_V, org.compiere.model.I_C_Currency> COLUMN_C_Currency_ID = new org.adempiere.model.ModelColumn<I_M_Packageable_V, org.compiere.model.I_C_Currency>(I_M_Packageable_V.class, "C_Currency_ID", org.compiere.model.I_C_Currency.class);
     /** Column name C_Currency_ID */
     public static final String COLUMNNAME_C_Currency_ID = "C_Currency_ID";
 
@@ -306,6 +278,29 @@ public interface I_M_Packageable_V
     public static final String COLUMNNAME_C_OrderSO_ID = "C_OrderSO_ID";
 
 	/**
+	 * Set Maßeinheit.
+	 * Maßeinheit
+	 *
+	 * <br>Type: TableDir
+	 * <br>Mandatory: false
+	 * <br>Virtual Column: false
+	 */
+	public void setC_UOM_ID (int C_UOM_ID);
+
+	/**
+	 * Get Maßeinheit.
+	 * Maßeinheit
+	 *
+	 * <br>Type: TableDir
+	 * <br>Mandatory: false
+	 * <br>Virtual Column: false
+	 */
+	public int getC_UOM_ID();
+
+    /** Column name C_UOM_ID */
+    public static final String COLUMNNAME_C_UOM_ID = "C_UOM_ID";
+
+	/**
 	 * Get Erstellt.
 	 * Datum, an dem dieser Eintrag erstellt wurde
 	 *
@@ -330,39 +325,8 @@ public interface I_M_Packageable_V
 	 */
 	public int getCreatedBy();
 
-    /** Column definition for CreatedBy */
-    public static final org.adempiere.model.ModelColumn<I_M_Packageable_V, org.compiere.model.I_AD_User> COLUMN_CreatedBy = new org.adempiere.model.ModelColumn<I_M_Packageable_V, org.compiere.model.I_AD_User>(I_M_Packageable_V.class, "CreatedBy", org.compiere.model.I_AD_User.class);
     /** Column name CreatedBy */
     public static final String COLUMNNAME_CreatedBy = "CreatedBy";
-
-	/**
-	 * Set Maßeinheit.
-	 * Maßeinheit
-	 *
-	 * <br>Type: TableDir
-	 * <br>Mandatory: false
-	 * <br>Virtual Column: false
-	 */
-	public void setC_UOM_ID (int C_UOM_ID);
-
-	/**
-	 * Get Maßeinheit.
-	 * Maßeinheit
-	 *
-	 * <br>Type: TableDir
-	 * <br>Mandatory: false
-	 * <br>Virtual Column: false
-	 */
-	public int getC_UOM_ID();
-
-	public org.compiere.model.I_C_UOM getC_UOM();
-
-	public void setC_UOM(org.compiere.model.I_C_UOM C_UOM);
-
-    /** Column definition for C_UOM_ID */
-    public static final org.adempiere.model.ModelColumn<I_M_Packageable_V, org.compiere.model.I_C_UOM> COLUMN_C_UOM_ID = new org.adempiere.model.ModelColumn<I_M_Packageable_V, org.compiere.model.I_C_UOM>(I_M_Packageable_V.class, "C_UOM_ID", org.compiere.model.I_C_UOM.class);
-    /** Column name C_UOM_ID */
-    public static final String COLUMNNAME_C_UOM_ID = "C_UOM_ID";
 
 	/**
 	 * Set Auftragsdatum.
@@ -580,12 +544,6 @@ public interface I_M_Packageable_V
 	 */
 	public int getLockedBy_User_ID();
 
-	public org.compiere.model.I_AD_User getLockedBy_User();
-
-	public void setLockedBy_User(org.compiere.model.I_AD_User LockedBy_User);
-
-    /** Column definition for LockedBy_User_ID */
-    public static final org.adempiere.model.ModelColumn<I_M_Packageable_V, org.compiere.model.I_AD_User> COLUMN_LockedBy_User_ID = new org.adempiere.model.ModelColumn<I_M_Packageable_V, org.compiere.model.I_AD_User>(I_M_Packageable_V.class, "LockedBy_User_ID", org.compiere.model.I_AD_User.class);
     /** Column name LockedBy_User_ID */
     public static final String COLUMNNAME_LockedBy_User_ID = "LockedBy_User_ID";
 
@@ -638,12 +596,6 @@ public interface I_M_Packageable_V
 	 */
 	public int getM_Product_ID();
 
-	public org.compiere.model.I_M_Product getM_Product();
-
-	public void setM_Product(org.compiere.model.I_M_Product M_Product);
-
-    /** Column definition for M_Product_ID */
-    public static final org.adempiere.model.ModelColumn<I_M_Packageable_V, org.compiere.model.I_M_Product> COLUMN_M_Product_ID = new org.adempiere.model.ModelColumn<I_M_Packageable_V, org.compiere.model.I_M_Product>(I_M_Packageable_V.class, "M_Product_ID", org.compiere.model.I_M_Product.class);
     /** Column name M_Product_ID */
     public static final String COLUMNNAME_M_Product_ID = "M_Product_ID";
 
@@ -719,17 +671,11 @@ public interface I_M_Packageable_V
 	 */
 	public int getM_Warehouse_ID();
 
-	public org.compiere.model.I_M_Warehouse getM_Warehouse();
-
-	public void setM_Warehouse(org.compiere.model.I_M_Warehouse M_Warehouse);
-
-    /** Column definition for M_Warehouse_ID */
-    public static final org.adempiere.model.ModelColumn<I_M_Packageable_V, org.compiere.model.I_M_Warehouse> COLUMN_M_Warehouse_ID = new org.adempiere.model.ModelColumn<I_M_Packageable_V, org.compiere.model.I_M_Warehouse>(I_M_Packageable_V.class, "M_Warehouse_ID", org.compiere.model.I_M_Warehouse.class);
     /** Column name M_Warehouse_ID */
     public static final String COLUMNNAME_M_Warehouse_ID = "M_Warehouse_ID";
 
 	/**
-	 * Set Warehouse Type.
+	 * Set Lagerart.
 	 *
 	 * <br>Type: Search
 	 * <br>Mandatory: false
@@ -738,7 +684,7 @@ public interface I_M_Packageable_V
 	public void setM_Warehouse_Type_ID (int M_Warehouse_Type_ID);
 
 	/**
-	 * Get Warehouse Type.
+	 * Get Lagerart.
 	 *
 	 * <br>Type: Search
 	 * <br>Mandatory: false
@@ -756,8 +702,7 @@ public interface I_M_Packageable_V
     public static final String COLUMNNAME_M_Warehouse_Type_ID = "M_Warehouse_Type_ID";
 
 	/**
-	 * Set Order Document No.
-	 * Document Number of the Order
+	 * Set Auftragsnr..
 	 *
 	 * <br>Type: String
 	 * <br>Mandatory: false
@@ -766,8 +711,7 @@ public interface I_M_Packageable_V
 	public void setOrderDocumentNo (java.lang.String OrderDocumentNo);
 
 	/**
-	 * Get Order Document No.
-	 * Document Number of the Order
+	 * Get Auftragsnr..
 	 *
 	 * <br>Type: String
 	 * <br>Mandatory: false
@@ -1019,6 +963,29 @@ public interface I_M_Packageable_V
     public static final String COLUMNNAME_QtyToDeliver = "QtyToDeliver";
 
 	/**
+	 * Set Zuordnung Mindesthaltbarkeit.
+	 *
+	 * <br>Type: List
+	 * <br>Mandatory: false
+	 * <br>Virtual Column: false
+	 */
+	public void setShipmentAllocation_BestBefore_Policy (java.lang.String ShipmentAllocation_BestBefore_Policy);
+
+	/**
+	 * Get Zuordnung Mindesthaltbarkeit.
+	 *
+	 * <br>Type: List
+	 * <br>Mandatory: false
+	 * <br>Virtual Column: false
+	 */
+	public java.lang.String getShipmentAllocation_BestBefore_Policy();
+
+    /** Column definition for ShipmentAllocation_BestBefore_Policy */
+    public static final org.adempiere.model.ModelColumn<I_M_Packageable_V, Object> COLUMN_ShipmentAllocation_BestBefore_Policy = new org.adempiere.model.ModelColumn<I_M_Packageable_V, Object>(I_M_Packageable_V.class, "ShipmentAllocation_BestBefore_Policy", null);
+    /** Column name ShipmentAllocation_BestBefore_Policy */
+    public static final String COLUMNNAME_ShipmentAllocation_BestBefore_Policy = "ShipmentAllocation_BestBefore_Policy";
+
+	/**
 	 * Set Shipper name.
 	 *
 	 * <br>Type: String
@@ -1066,8 +1033,6 @@ public interface I_M_Packageable_V
 	 */
 	public int getUpdatedBy();
 
-    /** Column definition for UpdatedBy */
-    public static final org.adempiere.model.ModelColumn<I_M_Packageable_V, org.compiere.model.I_AD_User> COLUMN_UpdatedBy = new org.adempiere.model.ModelColumn<I_M_Packageable_V, org.compiere.model.I_AD_User>(I_M_Packageable_V.class, "UpdatedBy", org.compiere.model.I_AD_User.class);
     /** Column name UpdatedBy */
     public static final String COLUMNNAME_UpdatedBy = "UpdatedBy";
 

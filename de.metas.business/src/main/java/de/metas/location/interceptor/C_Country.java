@@ -5,17 +5,20 @@ import java.util.Properties;
 import org.adempiere.ad.modelvalidator.annotations.Interceptor;
 import org.adempiere.ad.modelvalidator.annotations.ModelChange;
 import org.adempiere.ad.trx.api.ITrx;
+import org.adempiere.mm.attributes.AttributeListValue;
+import org.adempiere.mm.attributes.api.AttributeListValueChangeRequest;
+import org.adempiere.mm.attributes.api.IAttributeDAO;
 import org.adempiere.mm.attributes.api.IAttributesBL;
 import org.adempiere.mm.attributes.countryattribute.ICountryAttributeDAO;
+import org.adempiere.mm.attributes.spi.IAttributeValueGenerator;
 import org.compiere.model.I_C_Country;
-import org.compiere.model.I_M_AttributeValue;
+import org.compiere.model.I_M_Attribute;
 import org.compiere.model.ModelValidator;
 import org.compiere.util.Env;
 import org.springframework.stereotype.Component;
 
 import de.metas.util.Services;
-
-import static org.adempiere.model.InterfaceWrapperHelper.save;
+import lombok.NonNull;
 
 /*
  * #%L
@@ -39,21 +42,26 @@ import static org.adempiere.model.InterfaceWrapperHelper.save;
  * #L%
  */
 @Interceptor(I_C_Country.class)
-@Component("de.metas.location.model.interceptor.C_Country")
+@Component
 public class C_Country
 {
 	@ModelChange(timings = ModelValidator.TYPE_AFTER_NEW)
 	public void onCreateCountry(final I_C_Country country)
 	{
 		final Properties ctx = Env.getCtx();
-		final I_M_AttributeValue attributeValue = getAttributeValue(country);
+		final AttributeListValue attributeValue = getAttributeValue(country);
 		if (attributeValue != null)
 		{
 			setCountryAttributeAsActive(country, true);
 		}
 		else
 		{
-			Services.get(IAttributesBL.class).getAttributeValueGenerator(Services.get(ICountryAttributeDAO.class).retrieveCountryAttribute(ctx)).generateAttributeValue(ctx, I_C_Country.Table_ID, country.getC_Country_ID(), false, ITrx.TRXNAME_ThreadInherited);
+			final IAttributesBL attributesService = Services.get(IAttributesBL.class);
+			final ICountryAttributeDAO countryAttributeDAO = Services.get(ICountryAttributeDAO.class);
+
+			final I_M_Attribute countryAttribute = countryAttributeDAO.retrieveCountryAttribute(ctx);
+			final IAttributeValueGenerator generator = attributesService.getAttributeValueGenerator(countryAttribute);
+			generator.generateAttributeValue(ctx, I_C_Country.Table_ID, country.getC_Country_ID(), false, ITrx.TRXNAME_ThreadInherited);
 		}
 	}
 
@@ -75,31 +83,42 @@ public class C_Country
 		setCountryAttributeAsActive(country, false);
 	}
 
-	private I_M_AttributeValue setCountryAttributeAsActive(final I_C_Country country, final boolean isActive)
+	private AttributeListValue setCountryAttributeAsActive(final I_C_Country country, final boolean isActive)
 	{
-		final I_M_AttributeValue attributeValue = getAttributeValue(country);
-		if (attributeValue != null)
+		final AttributeListValue existingAttributeValue = getAttributeValue(country);
+		if (existingAttributeValue != null)
 		{
-			attributeValue.setIsActive(isActive);
-			save(attributeValue);
+			final IAttributeDAO attributesRepo = Services.get(IAttributeDAO.class);
+			return attributesRepo.changeAttributeValue(AttributeListValueChangeRequest.builder()
+					.id(existingAttributeValue.getId())
+					.active(isActive)
+					.build());
 		}
-		return attributeValue;
+		else
+		{
+			return null;
+		}
 	}
 
-	private I_M_AttributeValue setCountryAttributeName(final I_C_Country country)
+	private AttributeListValue setCountryAttributeName(@NonNull final I_C_Country country)
 	{
-		final I_M_AttributeValue attributeValue = getAttributeValue(country);
-		if (attributeValue != null)
+		final AttributeListValue existingAttributeValue = getAttributeValue(country);
+		if (existingAttributeValue != null)
 		{
-			attributeValue.setName(country.getName());
-			save(attributeValue);
+			final IAttributeDAO attributesRepo = Services.get(IAttributeDAO.class);
+			return attributesRepo.changeAttributeValue(AttributeListValueChangeRequest.builder()
+					.id(existingAttributeValue.getId())
+					.name(country.getName())
+					.build());
 		}
-		return attributeValue;
+		else
+		{
+			return null;
+		}
 	}
 
-	private I_M_AttributeValue getAttributeValue(final I_C_Country country)
+	private AttributeListValue getAttributeValue(final I_C_Country country)
 	{
-		final I_M_AttributeValue attributeValue = Services.get(ICountryAttributeDAO.class).retrieveAttributeValue(Env.getCtx(), country, true);
-		return attributeValue;
+		return Services.get(ICountryAttributeDAO.class).retrieveAttributeValue(Env.getCtx(), country, true);
 	}
 }

@@ -3,6 +3,7 @@ package de.metas.material.dispo.commons.repository.atp;
 import java.math.BigDecimal;
 import java.time.Instant;
 
+import org.adempiere.warehouse.WarehouseId;
 import org.compiere.util.Util.ArrayKey;
 
 import de.metas.material.dispo.commons.repository.DateAndSeqNo;
@@ -37,17 +38,19 @@ import lombok.Value;
 @Value
 public final class AddToResultGroupRequest
 {
-	int warehouseId;
+	WarehouseId warehouseId;
 	int productId;
-	AttributesKey storageAttributesKey;
 	BPartnerClassifier bpartner;
+	AttributesKey storageAttributesKey;
+
 	BigDecimal qty;
+
 	Instant date;
 	int seqNo; // needed to disambiguated requests with the same date
 
 	@Builder
 	public AddToResultGroupRequest(
-			final int warehouseId,
+			@NonNull final WarehouseId warehouseId,
 			final int productId,
 			@NonNull final AttributesKey storageAttributesKey,
 			@NonNull final BPartnerClassifier bpartner,
@@ -55,13 +58,13 @@ public final class AddToResultGroupRequest
 			@NonNull final Instant date,
 			final int seqNo)
 	{
-		this.warehouseId = Check.assumeGreaterThanZero(warehouseId, "warehouseId");
+		this.warehouseId = warehouseId;
 		this.productId = Check.assumeGreaterThanZero(productId, "productId");
-
+		this.bpartner = bpartner;
 		this.storageAttributesKey = storageAttributesKey;
 
-		this.bpartner = bpartner;
 		this.qty = qty;
+
 		this.date = date;
 		this.seqNo = Check.assumeGreaterThanZero(seqNo, "seqNo");
 	}
@@ -73,8 +76,7 @@ public final class AddToResultGroupRequest
 
 	public DateAndSeqNo getDateAndSeqNo()
 	{
-		return DateAndSeqNo
-				.builder()
+		return DateAndSeqNo.builder()
 				.date(date)
 				.seqNo(seqNo)
 				.build();

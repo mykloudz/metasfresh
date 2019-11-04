@@ -21,6 +21,7 @@ import com.google.common.collect.ImmutableList;
 
 import de.metas.bpartner.BPartnerId;
 import de.metas.bpartner.BPartnerLocationId;
+import de.metas.bpartner.ShipmentAllocationBestBeforePolicy;
 import de.metas.inoutcandidate.api.IPackagingDAO;
 import de.metas.inoutcandidate.api.Packageable;
 import de.metas.inoutcandidate.api.Packageable.PackageableBuilder;
@@ -65,7 +66,7 @@ public class PackagingDAO implements IPackagingDAO
 		// Filter: Customer
 		if (query.getCustomerId() != null)
 		{
-			queryBuilder.addEqualsFilter(I_M_Packageable_V.COLUMN_C_BPartner_Customer_ID, query.getCustomerId());
+			queryBuilder.addEqualsFilter(I_M_Packageable_V.COLUMNNAME_C_BPartner_Customer_ID, query.getCustomerId());
 		}
 
 		//
@@ -79,7 +80,7 @@ public class PackagingDAO implements IPackagingDAO
 		// Filter: M_Warehouse_ID
 		if (query.getWarehouseId() != null)
 		{
-			queryBuilder.addEqualsFilter(I_M_Packageable_V.COLUMN_M_Warehouse_ID, query.getWarehouseId());
+			queryBuilder.addEqualsFilter(I_M_Packageable_V.COLUMNNAME_M_Warehouse_ID, query.getWarehouseId());
 		}
 
 		//
@@ -97,6 +98,11 @@ public class PackagingDAO implements IPackagingDAO
 		if (query.getPreparationDate() != null)
 		{
 			queryBuilder.addEqualsFilter(I_M_Packageable_V.COLUMN_PreparationDate, query.getPreparationDate(), DateTruncQueryFilterModifier.DAY);
+		}
+
+		if(query.getShipperId() != null)
+		{
+			queryBuilder.addEqualsFilter(I_M_Packageable_V.COLUMNNAME_M_Shipper_ID, query.getShipperId());
 		}
 
 		//
@@ -177,6 +183,8 @@ public class PackagingDAO implements IPackagingDAO
 
 		packageable.deliveryDate(TimeUtil.asZonedDateTime(record.getDeliveryDate())); // 01676
 		packageable.preparationDate(TimeUtil.asZonedDateTime(record.getPreparationDate()));
+
+		packageable.bestBeforePolicy(ShipmentAllocationBestBeforePolicy.optionalOfNullableCode(record.getShipmentAllocation_BestBefore_Policy()));
 
 		packageable.shipmentScheduleId(ShipmentScheduleId.ofRepoId(record.getM_ShipmentSchedule_ID()));
 
