@@ -43,6 +43,18 @@ public class X_M_AttributeInstance extends org.compiere.model.PO implements I_M_
       org.compiere.model.POInfo poi = org.compiere.model.POInfo.getPOInfo (ctx, Table_Name, get_TrxName());
       return poi;
     }
+    
+    @Override
+    public org.compiere.model.I_M_Attribute getM_Attribute() throws RuntimeException
+    {
+      return get_ValueAsPO(COLUMNNAME_M_Attribute_ID, org.compiere.model.I_M_Attribute.class);
+    }
+
+    @Override
+    public void setM_Attribute(org.compiere.model.I_M_Attribute M_Attribute)
+    {
+      set_ValueFromPO(COLUMNNAME_M_Attribute_ID, org.compiere.model.I_M_Attribute.class, M_Attribute);
+    }
 
 	/** Set Merkmal.
 		@param M_Attribute_ID 

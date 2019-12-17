@@ -150,6 +150,11 @@ public interface I_M_AttributeInstance
 	 * <br>Mandatory: true
 	 * <br>Virtual Column: false
 	 */
+	
+	public org.compiere.model.I_M_Attribute getM_Attribute();
+
+	public void setM_Attribute(org.compiere.model.I_M_Attribute M_Attribute);
+	
 	public int getM_AttributeInstance_ID();
 
     /** Column definition for M_AttributeInstance_ID */
